@@ -1,0 +1,80 @@
+---
+title: "Projeto Final"
+author: "Caio Emerson Tiago Vinicius"
+date: '2023-06-17'
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+
+```{r pacotes}
+library(tidyverse)
+library(ggplot2)
+library(summarytools)
+library(gmodels)
+library(dplyr)
+```
+
+
+```{r leitura}
+
+# nao mostrar os resultados na notacao cientifica
+options(scipen = 999)
+
+library(readr)
+df <- read_csv("./data/train.csv")
+```
+
+### Mudar as variaveis quantitativas em qualitativas
+
+```{r}
+df$`023c68873b` <- factor(df$`023c68873b`)
+df$`06888ceac9` <- factor(df$`06888ceac9`)
+df$`361f93f4d1` <- factor(df$`361f93f4d1`)
+df$`384bec5dd1` <- factor(df$`384bec5dd1`)
+df$`7cb7913148` <- factor(df$`7cb7913148`, ordered=TRUE)
+df$`8d0606b150` <- factor(df$`8d0606b150`)
+df$`91145d159d` <- factor(df$`91145d159d`)
+df$`9a575e82a4` <- factor(df$`9a575e82a4`)
+df$`b835dfe10f` <- factor(df$`b835dfe10f`)
+df$`e16e640635` <- factor(df$`e16e640635`)
+df$`f1f0984934` <- factor(df$`f1f0984934`)
+
+```
+
+```{r descritiva}
+# medidas resumo
+summary(df)
+```
+### Grafico univariado
+
+```{r grafico1}
+# grafico de uma variavel quantitativa
+qplot(x=df$target)
+```
+
+```{r}
+dadosQuali <- df %>%
+  select(`023c68873b`,`06888ceac9`,`361f93f4d1`,`384bec5dd1`,`7cb7913148`,`8d0606b150`,`91145d159d`,`9a575e82a4`,`b835dfe10f`,`e16e640635`,`f1f0984934`)
+
+dadosQuant <- df %>%
+  select(-c(id,target,`023c68873b`,`06888ceac9`,`361f93f4d1`,`384bec5dd1`,`7cb7913148`,`8d0606b150`,`91145d159d`,`9a575e82a4`,`b835dfe10f`,`e16e640635`,`f1f0984934`))
+
+```
+
+```{r}
+# Normalização para o intervalo [0, 1]
+df_norm <- dadosQuant %>%
+  # select(-target) %>%
+  mutate(across(everything(), ~(. - min(.)) / (max(.) - min(.))))
+
+df_norm$target <- df$target
+```
+
+```{r}
+dfCor <- cor(df_norm,df_norm$target)
+```
+
