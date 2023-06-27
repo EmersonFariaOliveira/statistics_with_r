@@ -74,6 +74,17 @@ df_norm <- dadosQuant %>%
 df_norm$target <- df$target
 ```
 
+```{r criar dummies}
+# criar variaveis dummies das variaveis preditoras qualitativas
+var_dummies <- dummy_cols(var_preditoras, select_columns = c("atrasos", "temporel",
+                                  "valorfatura","p_gastoalim",
+                                  "regiaorisco","rendamensal"),
+           remove_first_dummy = TRUE,
+           remove_selected_columns = TRUE)
+```
+
+
+
 ```{r}
 dfCor <- cor(df_norm,df_norm$target)
 ```
