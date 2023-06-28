@@ -45,16 +45,37 @@ df$`f1f0984934` <- factor(df$`f1f0984934`)
 
 ```
 
+### Analise descritiva
+
+Conhecer as variaveis
+
 ```{r descritiva}
 # medidas resumo
 summary(df)
 ```
+
 ### Grafico univariado
 
 ```{r grafico1}
 # grafico de uma variavel quantitativa
 qplot(x=df$target)
 ```
+
+```{r grafico2}
+# grafico de uma variavel qualitativa
+qplot(x=df$`7cb7913148`, geom = "bar")
+```
+
+```{r grafico2}
+# grafico de uma variavel qualitativa
+qplot(x=df$`8f5f7c556a`, geom = "bar")
+```
+
+```{r grafico5}
+boxplot(df$target ~ df$`7cb7913148`)
+```
+
+
 
 ```{r}
 dadosQuali <- df %>%
@@ -63,25 +84,135 @@ dadosQuali <- df %>%
 dadosQuant <- df %>%
   select(-c(id,target,`023c68873b`,`06888ceac9`,`361f93f4d1`,`384bec5dd1`,`7cb7913148`,`8d0606b150`,`91145d159d`,`9a575e82a4`,`b835dfe10f`,`e16e640635`,`f1f0984934`))
 
+target <- df$target
+
+```
+
+```{r cnt}
+summary(target)
+```
+
+ntile() é uma função do dplyr para criar categorias usando os quartis.
+
+```{r faixa}
+
+df1 <- df
+
+# Criar a variavel faixa de cnt
+df1$fxtarget_num <- ntile(df$target, 4)  
+df1$fxtarget_cat <- factor(df1$fxtarget_num, levels=c(1,2,3,4),labels = c(labels=c("[ -0.2398 a 0.5031]", "(0.5031 a 0.9838]",
+                                                                                    "(0.9838 a 1.6609]",  "(1.6609 a 61.3261]")))
+df1$fxtarget_cat <- factor(df1$fxtarget_cat, ordered =TRUE)
+freq(df1$fxtarget_cat)
+
+```
+
+```{r tabela1a}
+df1$quali_7cb7913148 <- factor(df1$`7cb7913148`)
+
+CrossTable(df1$fxtarget_cat,df1$quali_7cb7913148, prop.r = FALSE, prop.c = FALSE, prop.t = FALSE,
+           prop.chisq = FALSE,chisq = FALSE)
+
+```
+```{r tabela1a}
+df1$quali_06888ceac9 <- factor(df1$`06888ceac9`)
+
+CrossTable(df1$fxtarget_cat,df1$quali_06888ceac9, prop.r = FALSE, prop.c = FALSE, prop.t = FALSE,
+           prop.chisq = FALSE,chisq = FALSE)
+
+```
+```{r tabela1a}
+df1$quali_384bec5dd1 <- factor(df1$`384bec5dd1`)
+
+CrossTable(df1$fxtarget_cat,df1$quali_384bec5dd1, prop.r = FALSE, prop.c = FALSE, prop.t = FALSE,
+           prop.chisq = FALSE,chisq = FALSE)
+
+```
+
+```{r tabela1a}
+df1$quali_9a575e82a4 <- factor(df1$`9a575e82a4`)
+
+CrossTable(df1$fxtarget_cat,df1$quali_9a575e82a4, prop.r = FALSE, prop.c = FALSE, prop.t = FALSE,
+           prop.chisq = FALSE,chisq = FALSE)
+
+```
+
+
+```{r grafico15}
+# frequencia de season
+freq_total <- df1 %>%
+  select(fxtarget_cat) %>%
+  group_by(fxtarget_cat) %>%
+  summarise(obs = n()) %>%
+  mutate(freq = obs/sum(obs)*100) %>%
+  mutate(quali_7cb7913148 = ifelse(fxtarget_cat =="[ -0.2398 a 0.5031]", "1",
+                               ifelse(fxtarget_cat =="(0.5031 a 0.9838]","2",
+                                      ifelse(fxtarget_cat =="(0.9838 a 1.6609]","3","4")))) %>%
+  mutate(fxtarget_num=5) %>%
+  relocate(fxtarget_num, .before = fxtarget_cat) %>%
+  relocate(quali_7cb7913148, .after = fxtarget_cat) 
+
+                                                                                   
+
+# frequencia de season por faixa de target
+freq_fxtarget <- df1 %>%
+  select(fxtarget_num, fxtarget_cat,quali_7cb7913148) %>%
+  group_by(fxtarget_num, fxtarget_cat,quali_7cb7913148) %>%
+  summarise(obs = n()) %>%
+  mutate(freq = obs/sum(obs)*100)
+  
+# append  
+freq <- rbind(freq_fxtarget,freq_total)  
+
+
+ggplot(freq, aes(x = fxtarget_num, y = freq, fill = quali_7cb7913148, label = round(freq, 1))) +
+  geom_col() +
+  geom_text(position = position_stack(vjust = 0.5)) +
+  labs(title= "Demanda de bikes segundo a estacao do ano",
+            x= "Target", y="%") 
+  
 ```
 
 ```{r}
+
+names(dadosQuali)
+
+
+```
+
+
+
+```{r normalizando}
 # Normalização para o intervalo [0, 1]
 df_norm <- dadosQuant %>%
   # select(-target) %>%
   mutate(across(everything(), ~(. - min(.)) / (max(.) - min(.))))
-
-df_norm$target <- df$target
 ```
+
 
 ```{r criar dummies}
 # criar variaveis dummies das variaveis preditoras qualitativas
-var_dummies <- dummy_cols(var_preditoras, select_columns = c("atrasos", "temporel",
-                                  "valorfatura","p_gastoalim",
-                                  "regiaorisco","rendamensal"),
+var_dummies <- dummy_cols(dadosQuali, select_columns = c("023c68873b","361f93f4d1","7cb7913148","8d0606b150", "91145d159d","b835dfe10f", "e16e640635", "f1f0984934"),
            remove_first_dummy = TRUE,
            remove_selected_columns = TRUE)
 ```
+
+```{r}
+names(dadosQuali)
+```
+
+
+
+```{r target}
+
+
+df_final <- cbind(df_norm,var_dummies,target)
+
+```
+
+
+
+
 
 
 
