@@ -16,6 +16,7 @@ library(ggplot2)
 library(summarytools)
 library(gmodels)
 library(dplyr)
+library(fastDummies)
 ```
 
 
@@ -175,18 +176,50 @@ ggplot(freq, aes(x = fxtarget_num, y = freq, fill = quali_7cb7913148, label = ro
 
 ```{r}
 
-names(dadosQuali)
+# names(dadosQuali)
+names(dadosQuant)
 
 
 ```
 
-
-
+```{r grafico33}
+# grafico de duas variaveis quantitativas 
+qplot(x=df$`8de0382f02`, y=df$target)
+```
 ```{r normalizando}
 # Normalização para o intervalo [0, 1]
 df_norm <- dadosQuant %>%
   # select(-target) %>%
   mutate(across(everything(), ~(. - min(.)) / (max(.) - min(.))))
+```
+
+
+### Análise de correlacao de Pearson
+
+Escala das Variáveis: Se as variáveis que você está analisando têm escalas muito diferentes, a normalização pode ser útil. Por exemplo, se uma variável é a idade (variando de 0 a 100) e outra é o salário anual (variando de 0 a milhões), os resultados da análise bivariada podem ser afetados pela diferença de escalas.
+
+Distribuição dos Dados: Se os dados têm uma distribuição muito inclinada ou assimétrica, às vezes é útil normalizar ou transformar os dados para fazer com que sua distribuição seja mais próxima da normal. Isso pode ser especialmente importante se você planeja usar métodos estatísticos que assumem uma distribuição normal.
+
+Técnicas de Análise: Algumas técnicas de análise bivariada, como a correlação de Pearson, são sensíveis à escala dos dados. Nesses casos, a normalização pode ser necessária para obter resultados significativos.
+
+Interpretação e Visualização: Em alguns casos, a normalização pode facilitar a interpretação dos resultados e a criação de visualizações mais eficazes.
+
+```{r correlacao}
+# selecionar somente as variaveis quantitativas
+
+df_corr <- cbind(df_norm,target)
+
+correlacao <- cor(df_corr)
+correlacao
+
+mc <- correlacao
+```
+
+
+```{r grafico13}
+library(corrplot)
+#corrplot(mc)
+corrplot(mc, type="full", method="number")
 ```
 
 
@@ -197,26 +230,327 @@ var_dummies <- dummy_cols(dadosQuali, select_columns = c("023c68873b","361f93f4d
            remove_selected_columns = TRUE)
 ```
 
-```{r}
-names(dadosQuali)
-```
-
-
 
 ```{r target}
 
+df_modelo <- cbind(df_norm,var_dummies,target)
 
-df_final <- cbind(df_norm,var_dummies,target)
+```
+
+### Modelo de Regressão Linear Múltipla
+### Dividir a amostra em treino e validação
+
+```{r amostras}
+
+#Dividir em duas amostras
+set.seed(2021)
+train <- sample(nrow(df_modelo), 0.7*nrow(df_modelo), replace = FALSE)
+TrainSet <- df_modelo[train,]
+ValidSet <- df_modelo[-train,]
+
+```
+
+### Comparar a variável resposta nas duas amostras
+
+```{r amostra1}
+summary(TrainSet$target)
 
 ```
 
 
+```{r amostra2}
+summary(ValidSet$target)
+```
+### Rodar o modelo
+```{r modelo}
+modelo <- lm(target ~ ., data = TrainSet)
+summary(modelo)
+```
+
+```{r stepwise acelerada }
+# # install.packages("MASS")
+# # Carregar o pacote MASS
+# library(MASS)
+# 
+# # Realizar a seleção stepwise acelerada
+# modelo_stepwise <- stepAIC(modelo, trace = 1,
+#                            steps = 2, # Número máximo de etapas a serem tomadas
+#                            k = 2) # Parâmetro de penalização (padrão é 2, equivalente ao AIC)
+
+```
+
+
+```{r previsao1}
+
+TrainSet$Val_pred <- predict(modelo) 
+TrainSet$residuo  <- resid(modelo)
+TrainSet$rp <- rstandard(modelo)
+
+
+```
+
+
+```{r analise}
+df_analise <- TrainSet %>%
+  select(target, Val_pred, residuo, rp)
+```
+
+
+```{r rmse1}
+# Erro quadratico medio na amostra de treino
+mse <- mean((TrainSet$target - TrainSet$Val_pred)^2)
+sqrt(mse)
+
+```
+### Análise dos resíduos do modelo
+
+```{r residuo1}
+plot(predict(modelo),TrainSet$residuo, xlab = "Preditor linear",ylab = "Residuos")
+abline(h = 0, lty = 2)
+
+```
+```{r normalidade1}
+qqnorm(residuals(modelo), ylab="Residuos",xlab="Quantis teoricos",main="")
+qqline(residuals(modelo))
+```
+
+
+```{r excluir_outlier1}
+
+#Excluir os outliers
+TrainSet_1 <-filter(TrainSet,TrainSet$rp>=-2&TrainSet$rp<=2) 
+
+#Pre-processamento dos dados
+# Apaga a coluna 
+TrainSet_1$Val_pred = NULL
+TrainSet_1$residuo = NULL
+TrainSet_1$rp = NULL
+```
+
+### Rodar o modelo
+```{r modelo}
+modelo2 <- lm(target ~ ., data = TrainSet_1)
+summary(modelo2)
+```
+
+
+```{r previsao2}
+
+TrainSet_1$Val_pred <- predict(modelo2) 
+TrainSet_1$residuo  <- resid(modelo2)
+TrainSet_1$rp <- rstandard(modelo2)
+
+```
+
+```{r analise2}
+df_analise2 <- TrainSet_1 %>%
+  select(target, Val_pred, residuo, rp)
+```
+
+
+```{r rmse1}
+# Erro quadratico medio na amostra de treino
+mse2 <- mean((TrainSet_1$target - TrainSet_1$Val_pred)^2)
+sqrt(mse2)
+
+```
+### Análise dos resíduos do modelo
+
+```{r residuo2}
+plot(predict(modelo2),TrainSet_1$residuo, xlab = "Preditor linear",ylab = "Residuos")
+abline(h = 0, lty = 2)
+
+```
+
+```{r normalidade2}
+qqnorm(residuals(modelo2), ylab="Residuos",xlab="Quantis teoricos",main="")
+qqline(residuals(modelo2))
+```
+```{r excluir_outlier2}
+
+#Excluir os outliers
+TrainSet_2 <-filter(TrainSet_1,TrainSet_1$rp>=-2&TrainSet_1$rp<=2) 
+
+#Pre-processamento dos dados
+# Apaga a coluna 
+TrainSet_2$Val_pred = NULL
+TrainSet_2$residuo = NULL
+TrainSet_2$rp = NULL
+```
+
+### Rodar o modelo
+```{r modelo3}
+modelo3 <- lm(target ~ ., data = TrainSet_2)
+summary(modelo3)
+```
+
+```{r previsao3}
+
+TrainSet_2$Val_pred <- predict(modelo3) 
+TrainSet_2$residuo  <- resid(modelo3)
+TrainSet_2$rp <- rstandard(modelo3)
+
+```
+
+```{r analise3}
+df_analise3 <- TrainSet_2 %>%
+  select(target, Val_pred, residuo, rp)
+```
+
+
+```{r rmse3}
+# Erro quadratico medio na amostra de treino
+mse3 <- mean((TrainSet_2$target - TrainSet_2$Val_pred)^2)
+sqrt(mse3)
+
+```
+### Análise dos resíduos do modelo
+
+```{r residuo3}
+plot(predict(modelo3),TrainSet_2$residuo, xlab = "Preditor linear",ylab = "Residuos")
+abline(h = 0, lty = 2)
+
+```
+
+```{r normalidade3}
+qqnorm(residuals(modelo3), ylab="Residuos",xlab="Quantis teoricos",main="")
+qqline(residuals(modelo3))
+```
+
+```{r excluir_outlier3}
+
+#Excluir os outliers
+TrainSet_3 <-filter(TrainSet_2,TrainSet_2$rp>=-2&TrainSet_2$rp<=2) 
+
+#Pre-processamento dos dados
+# Apaga a coluna 
+TrainSet_3$Val_pred = NULL
+TrainSet_3$residuo = NULL
+TrainSet_3$rp = NULL
+```
+
+### Rodar o modelo
+```{r modelo4}
+modelo4 <- lm(target ~ ., data = TrainSet_3)
+summary(modelo3)
+```
+
+```{r previsao4}
+
+TrainSet_3$Val_pred <- predict(modelo4) 
+TrainSet_3$residuo  <- resid(modelo4)
+TrainSet_3$rp <- rstandard(modelo4)
+
+```
+
+```{r analise4}
+df_analise4 <- TrainSet_3 %>%
+  select(target, Val_pred, residuo, rp)
+```
+
+
+```{r rmse4}
+# Erro quadratico medio na amostra de treino
+mse4 <- mean((TrainSet_3$target - TrainSet_3$Val_pred)^2)
+sqrt(mse4)
+
+```
+### Análise dos resíduos do modelo
+
+```{r residuo4}
+plot(predict(modelo4),TrainSet_3$residuo, xlab = "Preditor linear",ylab = "Residuos")
+abline(h = 0, lty = 2)
+
+```
+```{r normalidade4}
+qqnorm(residuals(modelo4), ylab="Residuos",xlab="Quantis teoricos",main="")
+qqline(residuals(modelo4))
+```
+
+
+##---------------------------------------------------------------------------------------
+##                           AMOSTRA DE VALIDACAO
+##---------------------------------------------------------------------------------------
+
+
+```{r amostra_validacao}
+
+# Amostra de validacao
+
+target_pred <- predict(modelo4,interval = "prediction", level = 0.95,
+                    newdata = ValidSet, se.fit = T) 
+
+target_pred1 <-target_pred$fit
+ValidSet_pred=cbind(ValidSet,target_pred1)
+```
+
+
+```{r residuo_validacao}
+# Residuo na amostra de validacao
+residuo_valid <- ValidSet_pred$target - ValidSet_pred$fit
+hist(residuo_valid)
+qqnorm(residuo_valid, ylab="Res?duos",xlab="Quantis te?ricos",main="")
+qqline(residuo_valid)
+```
 
 
 
+```{r rmse_validacao}
 
+# Erro quadratico medio na amostra de validacao
+mse2 <- mean((ValidSet_pred$target - ValidSet_pred$fit)^2)
+sqrt(mse2)
+```
+```{r}
+library(ggplot2)
+
+# Convertendo as previsões para um data.frame
+pred_df <- as.data.frame(target_pred$fit)
+
+# Adicionando a variável independente ou índice ao data.frame (se necessário)
+# Substitua variavel_independente pelo nome da sua variável independente ou use um índice sequencial.
+pred_df$x <- 1:7493
+
+# Criando o gráfico com apenas as primeiras 10 previsões
+ggplot(pred_df[300:400, ], aes(x = x, y = fit)) +
+  geom_point(aes(y = ValidSet$target[300:400]), color = 'blue') + # Pontos dos dados reais
+  geom_line(aes(y = fit), color = 'black') + # Linha dos valores ajustados
+  geom_ribbon(aes(ymin = lwr, ymax = upr), alpha = 0.2) + # Área de intervalo de predição
+  labs(x = "Variável Independente", y = "Target", title = "Valores Ajustados com Intervalo de Predição para as Primeiras 10 Observações")
+
+
+```
+```{r}
+# Fazer previsões nos dados de validação
+predictions <- predict(modelo2, newdata = ValidSet)
+```
 
 ```{r}
-dfCor <- cor(df_norm,df_norm$target)
+# Calculando o MSE
+mse <- mean((ValidSet$target - predictions)^2)
+
+# Calculando o RMSE
+rmse <- sqrt(mse)
+
+# Calculando o MAE
+mae <- mean(abs(ValidSet$target - predictions))
+
+# Imprimindo os resultados
+cat("MSE:", mse, "\n")
+cat("RMSE:", rmse, "\n")
+cat("MAE:", mae, "\n")
+
+# Calcular a soma dos quadrados dos resíduos (SS_res)
+SS_res <- sum((ValidSet$target - predictions)^2)
+
+# Calcular a soma total dos quadrados (SS_tot)
+SS_tot <- sum((ValidSet$target - mean(ValidSet$target))^2)
+
+# Calcular o R² nos dados de validação
+R2_validation <- 1 - (SS_res / SS_tot)
+
+# Imprimir o R²
+cat("R² nos dados de validação:", R2_validation, "\n")
 ```
+
 
