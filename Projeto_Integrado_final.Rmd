@@ -29,22 +29,51 @@ library(readr)
 df <- read_csv("./data/train.csv")
 ```
 
+```{r}
+# Nomes das colunas que você quer renomear
+colunas_para_renomear <- setdiff(names(df), c("id", "target"))
+
+# Número de colunas para renomear
+num_colunas <- length(colunas_para_renomear)
+
+# Inicializando o dicionário
+dicionario <- list()
+
+# Renomear as colunas para x1, x2, x3, ... e criar o dicionario
+for (i in 1:num_colunas) {
+    colname <- colunas_para_renomear[i]
+    new_colname <- paste("x", i, sep="")
+    
+    # Adicionando ao dicionário
+    dicionario[[new_colname]] <- colname
+    
+    # Renomeando a coluna
+    names(df)[names(df) == colname] <- new_colname
+}
+
+# Visualizando o dicionario
+# dicionario
+```
+
+
+
 ### Mudar as variaveis quantitativas em qualitativas
 
 ```{r}
-df$`023c68873b` <- factor(df$`023c68873b`)
-df$`06888ceac9` <- factor(df$`06888ceac9`)
-df$`361f93f4d1` <- factor(df$`361f93f4d1`)
-df$`384bec5dd1` <- factor(df$`384bec5dd1`)
-df$`7cb7913148` <- factor(df$`7cb7913148`, ordered=TRUE)
-df$`8d0606b150` <- factor(df$`8d0606b150`)
-df$`91145d159d` <- factor(df$`91145d159d`)
-df$`9a575e82a4` <- factor(df$`9a575e82a4`)
-df$`b835dfe10f` <- factor(df$`b835dfe10f`)
-df$`e16e640635` <- factor(df$`e16e640635`)
-df$`f1f0984934` <- factor(df$`f1f0984934`)
+df$x2 <- factor(df$x2)
+df$x5 <- factor(df$x5)
+df$x27 <- factor(df$x27)
+df$x28 <- factor(df$x28)
+df$x53 <- factor(df$x53, ordered=TRUE)
+df$x59 <- factor(df$x59)
+df$x62 <- factor(df$x62)
+df$x67 <- factor(df$x67)
+df$x78 <- factor(df$x78)
+df$x91 <- factor(df$x91)
+df$x100 <- factor(df$x100)
 
 ```
+
 
 ### Analise descritiva
 
@@ -64,26 +93,26 @@ qplot(x=df$target)
 
 ```{r grafico2}
 # grafico de uma variavel qualitativa
-qplot(x=df$`7cb7913148`, geom = "bar")
+qplot(x=df$x53, geom = "bar")
 ```
 
 ```{r grafico2}
 # grafico de uma variavel qualitativa
-qplot(x=df$`8f5f7c556a`, geom = "bar")
+qplot(x=df$x61, geom = "bar")
 ```
 
 ```{r grafico5}
-boxplot(df$target ~ df$`7cb7913148`)
+boxplot(df$target ~ df$x53)
 ```
 
 
 
 ```{r}
 dadosQuali <- df %>%
-  select(`023c68873b`,`06888ceac9`,`361f93f4d1`,`384bec5dd1`,`7cb7913148`,`8d0606b150`,`91145d159d`,`9a575e82a4`,`b835dfe10f`,`e16e640635`,`f1f0984934`)
+  select(x2,x5,x27,x28,x53,x59,x62,x67,x78,x91,x100)
 
 dadosQuant <- df %>%
-  select(-c(id,target,`023c68873b`,`06888ceac9`,`361f93f4d1`,`384bec5dd1`,`7cb7913148`,`8d0606b150`,`91145d159d`,`9a575e82a4`,`b835dfe10f`,`e16e640635`,`f1f0984934`))
+  select(-c(id,target,x2,x5,x27,x28,x53,x59,x62,x67,x78,x91,x100))
 
 target <- df$target
 
@@ -109,29 +138,29 @@ freq(df1$fxtarget_cat)
 ```
 
 ```{r tabela1a}
-df1$quali_7cb7913148 <- factor(df1$`7cb7913148`)
+df1$quali_x53 <- factor(df1$x53)
 
-CrossTable(df1$fxtarget_cat,df1$quali_7cb7913148, prop.r = FALSE, prop.c = FALSE, prop.t = FALSE,
+CrossTable(df1$fxtarget_cat,df1$quali_x53, prop.r = FALSE, prop.c = FALSE, prop.t = FALSE,
            prop.chisq = FALSE,chisq = FALSE)
 
 ```
 ```{r tabela1a}
-df1$quali_06888ceac9 <- factor(df1$`06888ceac9`)
+df1$quali_x5 <- factor(df1$x5)
 
-CrossTable(df1$fxtarget_cat,df1$quali_06888ceac9, prop.r = FALSE, prop.c = FALSE, prop.t = FALSE,
+CrossTable(df1$fxtarget_cat,df1$quali_x5, prop.r = FALSE, prop.c = FALSE, prop.t = FALSE,
            prop.chisq = FALSE,chisq = FALSE)
 
 ```
 ```{r tabela1a}
-df1$quali_384bec5dd1 <- factor(df1$`384bec5dd1`)
+df1$quali_x28 <- factor(df1$x28)
 
-CrossTable(df1$fxtarget_cat,df1$quali_384bec5dd1, prop.r = FALSE, prop.c = FALSE, prop.t = FALSE,
+CrossTable(df1$fxtarget_cat,df1$quali_x28, prop.r = FALSE, prop.c = FALSE, prop.t = FALSE,
            prop.chisq = FALSE,chisq = FALSE)
 
 ```
 
 ```{r tabela1a}
-df1$quali_9a575e82a4 <- factor(df1$`9a575e82a4`)
+df1$quali_9a575e82a4 <- factor(df1$x67)
 
 CrossTable(df1$fxtarget_cat,df1$quali_9a575e82a4, prop.r = FALSE, prop.c = FALSE, prop.t = FALSE,
            prop.chisq = FALSE,chisq = FALSE)
@@ -146,19 +175,19 @@ freq_total <- df1 %>%
   group_by(fxtarget_cat) %>%
   summarise(obs = n()) %>%
   mutate(freq = obs/sum(obs)*100) %>%
-  mutate(quali_7cb7913148 = ifelse(fxtarget_cat =="[ -0.2398 a 0.5031]", "1",
+  mutate(quali_x53 = ifelse(fxtarget_cat =="[ -0.2398 a 0.5031]", "1",
                                ifelse(fxtarget_cat =="(0.5031 a 0.9838]","2",
                                       ifelse(fxtarget_cat =="(0.9838 a 1.6609]","3","4")))) %>%
   mutate(fxtarget_num=5) %>%
   relocate(fxtarget_num, .before = fxtarget_cat) %>%
-  relocate(quali_7cb7913148, .after = fxtarget_cat) 
+  relocate(quali_x53, .after = fxtarget_cat) 
 
                                                                                    
 
 # frequencia de season por faixa de target
 freq_fxtarget <- df1 %>%
-  select(fxtarget_num, fxtarget_cat,quali_7cb7913148) %>%
-  group_by(fxtarget_num, fxtarget_cat,quali_7cb7913148) %>%
+  select(fxtarget_num, fxtarget_cat,quali_x53) %>%
+  group_by(fxtarget_num, fxtarget_cat,quali_x53) %>%
   summarise(obs = n()) %>%
   mutate(freq = obs/sum(obs)*100)
   
@@ -166,7 +195,7 @@ freq_fxtarget <- df1 %>%
 freq <- rbind(freq_fxtarget,freq_total)  
 
 
-ggplot(freq, aes(x = fxtarget_num, y = freq, fill = quali_7cb7913148, label = round(freq, 1))) +
+ggplot(freq, aes(x = fxtarget_num, y = freq, fill = quali_x53, label = round(freq, 1))) +
   geom_col() +
   geom_text(position = position_stack(vjust = 0.5)) +
   labs(title= "Demanda de bikes segundo a estacao do ano",
@@ -184,8 +213,50 @@ names(dadosQuant)
 
 ```{r grafico33}
 # grafico de duas variaveis quantitativas 
-qplot(x=df$`8de0382f02`, y=df$target)
+qplot(x=df$x60, y=df$target)
 ```
+
+```{r}
+# Função para detectar se uma coluna tem outliers
+detect_outliers <- function(column) {
+  Q1 <- quantile(column, 0.25)
+  Q3 <- quantile(column, 0.75)
+  IQR <- Q3 - Q1
+  lower_bound <- Q1 - 1.5 * IQR
+  upper_bound <- Q3 + 1.5 * IQR
+  return(any(column < lower_bound | column > upper_bound))
+}
+
+# Função para transformar uma coluna numérica em categorias
+transform_to_categories <- function(column) {
+  n <- length(column)
+  k <- round(1 + 3.322 * log10(n)) # número de bins com base na fórmula de Sturges
+  return(cut(column, breaks = k, labels = FALSE))
+}
+```
+
+```{r}
+
+```
+
+
+```{r}
+# dadosQuant1 = dadosQuant
+
+# Processando cada coluna do dataset
+for (col_name in names(dadosQuant)) {
+  if (is.numeric(dadosQuant[[col_name]])) {
+    if (detect_outliers(dadosQuant[[col_name]])) {
+      dadosQuali[[col_name]] <- as.factor(transform_to_categories(dadosQuant[[col_name]]))
+      dadosQuant[[col_name]] <- NULL
+      cat(sprintf("Transformed column '%s' into categories\n", col_name))
+    }
+  }
+}
+```
+
+
+
 ```{r normalizando}
 # Normalização para o intervalo [0, 1]
 df_norm <- dadosQuant %>%
@@ -224,8 +295,12 @@ corrplot(mc, type="full", method="number")
 
 
 ```{r criar dummies}
+
+# Criar uma lista de todas as colunas categóricas, exceto 'x5'
+columns_to_dummy <- setdiff(names(dadosQuali), c("x5", "x28", "x67"))
+
 # criar variaveis dummies das variaveis preditoras qualitativas
-var_dummies <- dummy_cols(dadosQuali, select_columns = c("023c68873b","361f93f4d1","7cb7913148","8d0606b150", "91145d159d","b835dfe10f", "e16e640635", "f1f0984934"),
+var_dummies <- dummy_cols(dadosQuali, select_columns = columns_to_dummy,
            remove_first_dummy = TRUE,
            remove_selected_columns = TRUE)
 ```
@@ -243,7 +318,7 @@ df_modelo <- cbind(df_norm,var_dummies,target)
 ```{r amostras}
 
 #Dividir em duas amostras
-set.seed(2021)
+set.seed(1010)
 train <- sample(nrow(df_modelo), 0.7*nrow(df_modelo), replace = FALSE)
 TrainSet <- df_modelo[train,]
 ValidSet <- df_modelo[-train,]
@@ -263,62 +338,80 @@ summary(ValidSet$target)
 ```
 ### Rodar o modelo
 ```{r modelo}
-modelo <- lm(target ~ ., data = TrainSet)
-summary(modelo)
+modelo_inicial <- lm(target ~ ., data = TrainSet)
+summary(modelo_inicial)
 ```
+# Rodar apenas se preferir a abordagem de eliminar os p-value
 
-```{r stepwise acelerada }
-# # install.packages("MASS")
-# # Carregar o pacote MASS
-# library(MASS)
-# 
-# # Realizar a seleção stepwise acelerada
-# modelo_stepwise <- stepAIC(modelo, trace = 1,
-#                            steps = 2, # Número máximo de etapas a serem tomadas
-#                            k = 2) # Parâmetro de penalização (padrão é 2, equivalente ao AIC)
+```{r variaveis_significativas }
+# Obter um sumário do modelo
+summary_modelo <- summary(modelo_inicial)
 
+# Obter os p-values
+p_values <- summary_modelo$coefficients[, 4]
+
+# Selecionar os nomes das variáveis com p-values < 0.05
+variaveis_significativas <- names(p_values)[p_values < 0.05]
+
+# Remover a interceptação (se estiver presente)
+variaveis_significativas <- variaveis_significativas[variaveis_significativas != "(Intercept)"]
+
+# correção de erros
+variaveis_significativas <- str_replace_all(variaveis_significativas,"x51","x5")
+# variaveis_significativas <- str_replace_all(variaveis_significativas,"x281","x28")
+variaveis_significativas <- str_replace_all(variaveis_significativas,"x671","x67")
+
+# Adicionar a coluna target ao vetor de colunas significativas
+colunas_para_manter <- c("target", variaveis_significativas)
+
+# Crie um novo conjunto de dados com apenas as colunas significativas
+# novo_TrainSet <- TrainSet[, colunas_para_manter]
+novo_TrainSet <- TrainSet
+
+# Crie um novo conjunto de dados com apenas as colunas significativas
+# novo_ValidSet <- ValidSet[, colunas_para_manter]
+novo_ValidSet <- ValidSet
+
+# Aplique o modelo de regressão linear usando o novo conjunto de dados
+novo_modelo <- lm(target ~ ., data = novo_TrainSet)
+
+# Veja o resumo do novo modelo
+summary(novo_modelo)
 ```
 
 
 ```{r previsao1}
 
-TrainSet$Val_pred <- predict(modelo) 
-TrainSet$residuo  <- resid(modelo)
-TrainSet$rp <- rstandard(modelo)
+novo_TrainSet$Val_pred <- predict(novo_modelo) 
+novo_TrainSet$residuo  <- resid(novo_modelo)
+novo_TrainSet$rp <- rstandard(novo_modelo)
 
-
-```
-
-
-```{r analise}
-df_analise <- TrainSet %>%
-  select(target, Val_pred, residuo, rp)
 ```
 
 
 ```{r rmse1}
 # Erro quadratico medio na amostra de treino
-mse <- mean((TrainSet$target - TrainSet$Val_pred)^2)
+mse <- mean((novo_TrainSet$target - novo_TrainSet$Val_pred)^2)
 sqrt(mse)
 
 ```
 ### Análise dos resíduos do modelo
 
 ```{r residuo1}
-plot(predict(modelo),TrainSet$residuo, xlab = "Preditor linear",ylab = "Residuos")
+plot(predict(novo_modelo),novo_TrainSet$residuo, xlab = "Preditor linear",ylab = "Residuos")
 abline(h = 0, lty = 2)
 
 ```
 ```{r normalidade1}
-qqnorm(residuals(modelo), ylab="Residuos",xlab="Quantis teoricos",main="")
-qqline(residuals(modelo))
+qqnorm(residuals(novo_modelo), ylab="Residuos",xlab="Quantis teoricos",main="")
+qqline(residuals(novo_modelo))
 ```
 
 
 ```{r excluir_outlier1}
 
 #Excluir os outliers
-TrainSet_1 <-filter(TrainSet,TrainSet$rp>=-2&TrainSet$rp<=2) 
+TrainSet_1 <-filter(novo_TrainSet,novo_TrainSet$rp>=-2&novo_TrainSet$rp<=2) 
 
 #Pre-processamento dos dados
 # Apaga a coluna 
@@ -329,42 +422,42 @@ TrainSet_1$rp = NULL
 
 ### Rodar o modelo
 ```{r modelo}
-modelo2 <- lm(target ~ ., data = TrainSet_1)
-summary(modelo2)
+modelo1 <- lm(target ~ ., data = TrainSet_1)
+summary(modelo1)
 ```
 
 
 ```{r previsao2}
 
-TrainSet_1$Val_pred <- predict(modelo2) 
-TrainSet_1$residuo  <- resid(modelo2)
-TrainSet_1$rp <- rstandard(modelo2)
+TrainSet_1$Val_pred <- predict(modelo1) 
+TrainSet_1$residuo  <- resid(modelo1)
+TrainSet_1$rp <- rstandard(modelo1)
 
 ```
 
 ```{r analise2}
-df_analise2 <- TrainSet_1 %>%
+df_analise1 <- TrainSet_1 %>%
   select(target, Val_pred, residuo, rp)
 ```
 
 
 ```{r rmse1}
 # Erro quadratico medio na amostra de treino
-mse2 <- mean((TrainSet_1$target - TrainSet_1$Val_pred)^2)
-sqrt(mse2)
+mse1 <- mean((TrainSet_1$target - TrainSet_1$Val_pred)^2)
+sqrt(mse1)
 
 ```
 ### Análise dos resíduos do modelo
 
 ```{r residuo2}
-plot(predict(modelo2),TrainSet_1$residuo, xlab = "Preditor linear",ylab = "Residuos")
+plot(predict(modelo1),TrainSet_1$residuo, xlab = "Preditor linear",ylab = "Residuos")
 abline(h = 0, lty = 2)
 
 ```
 
 ```{r normalidade2}
-qqnorm(residuals(modelo2), ylab="Residuos",xlab="Quantis teoricos",main="")
-qqline(residuals(modelo2))
+qqnorm(residuals(modelo1), ylab="Residuos",xlab="Quantis teoricos",main="")
+qqline(residuals(modelo1))
 ```
 ```{r excluir_outlier2}
 
@@ -380,41 +473,41 @@ TrainSet_2$rp = NULL
 
 ### Rodar o modelo
 ```{r modelo3}
-modelo3 <- lm(target ~ ., data = TrainSet_2)
-summary(modelo3)
+modelo2 <- lm(target ~ ., data = TrainSet_2)
+summary(modelo2)
 ```
 
 ```{r previsao3}
 
-TrainSet_2$Val_pred <- predict(modelo3) 
-TrainSet_2$residuo  <- resid(modelo3)
-TrainSet_2$rp <- rstandard(modelo3)
+TrainSet_2$Val_pred <- predict(modelo2) 
+TrainSet_2$residuo  <- resid(modelo2)
+TrainSet_2$rp <- rstandard(modelo2)
 
 ```
 
 ```{r analise3}
-df_analise3 <- TrainSet_2 %>%
+df_analise2 <- TrainSet_2 %>%
   select(target, Val_pred, residuo, rp)
 ```
 
 
 ```{r rmse3}
 # Erro quadratico medio na amostra de treino
-mse3 <- mean((TrainSet_2$target - TrainSet_2$Val_pred)^2)
-sqrt(mse3)
+mse2 <- mean((TrainSet_2$target - TrainSet_2$Val_pred)^2)
+sqrt(mse2)
 
 ```
 ### Análise dos resíduos do modelo
 
 ```{r residuo3}
-plot(predict(modelo3),TrainSet_2$residuo, xlab = "Preditor linear",ylab = "Residuos")
+plot(predict(modelo2),TrainSet_2$residuo, xlab = "Preditor linear",ylab = "Residuos")
 abline(h = 0, lty = 2)
 
 ```
 
 ```{r normalidade3}
-qqnorm(residuals(modelo3), ylab="Residuos",xlab="Quantis teoricos",main="")
-qqline(residuals(modelo3))
+qqnorm(residuals(modelo2), ylab="Residuos",xlab="Quantis teoricos",main="")
+qqline(residuals(modelo2))
 ```
 
 ```{r excluir_outlier3}
@@ -431,40 +524,40 @@ TrainSet_3$rp = NULL
 
 ### Rodar o modelo
 ```{r modelo4}
-modelo4 <- lm(target ~ ., data = TrainSet_3)
+modelo3 <- lm(target ~ ., data = TrainSet_3)
 summary(modelo3)
 ```
 
 ```{r previsao4}
 
-TrainSet_3$Val_pred <- predict(modelo4) 
-TrainSet_3$residuo  <- resid(modelo4)
-TrainSet_3$rp <- rstandard(modelo4)
+TrainSet_3$Val_pred <- predict(modelo3) 
+TrainSet_3$residuo  <- resid(modelo3)
+TrainSet_3$rp <- rstandard(modelo3)
 
 ```
 
 ```{r analise4}
-df_analise4 <- TrainSet_3 %>%
+df_analise3 <- TrainSet_3 %>%
   select(target, Val_pred, residuo, rp)
 ```
 
 
 ```{r rmse4}
 # Erro quadratico medio na amostra de treino
-mse4 <- mean((TrainSet_3$target - TrainSet_3$Val_pred)^2)
-sqrt(mse4)
+mse3 <- mean((TrainSet_3$target - TrainSet_3$Val_pred)^2)
+sqrt(mse3)
 
 ```
 ### Análise dos resíduos do modelo
 
 ```{r residuo4}
-plot(predict(modelo4),TrainSet_3$residuo, xlab = "Preditor linear",ylab = "Residuos")
+plot(predict(modelo3),TrainSet_3$residuo, xlab = "Preditor linear",ylab = "Residuos")
 abline(h = 0, lty = 2)
 
 ```
 ```{r normalidade4}
-qqnorm(residuals(modelo4), ylab="Residuos",xlab="Quantis teoricos",main="")
-qqline(residuals(modelo4))
+qqnorm(residuals(modelo3), ylab="Residuos",xlab="Quantis teoricos",main="")
+qqline(residuals(modelo3))
 ```
 
 
@@ -477,7 +570,7 @@ qqline(residuals(modelo4))
 
 # Amostra de validacao
 
-target_pred <- predict(modelo4,interval = "prediction", level = 0.95,
+target_pred <- predict(modelo2, interval = "prediction", level = 0.95,
                     newdata = ValidSet, se.fit = T) 
 
 target_pred1 <-target_pred$fit
@@ -512,28 +605,29 @@ pred_df <- as.data.frame(target_pred$fit)
 pred_df$x <- 1:7493
 
 # Criando o gráfico com apenas as primeiras 10 previsões
-ggplot(pred_df[300:400, ], aes(x = x, y = fit)) +
-  geom_point(aes(y = ValidSet$target[300:400]), color = 'blue') + # Pontos dos dados reais
+ggplot(pred_df[0:50, ], aes(x = x, y = fit)) +
+  geom_point(aes(y = ValidSet$target[0:50]), color = 'blue') + # Pontos dos dados reais
   geom_line(aes(y = fit), color = 'black') + # Linha dos valores ajustados
   geom_ribbon(aes(ymin = lwr, ymax = upr), alpha = 0.2) + # Área de intervalo de predição
   labs(x = "Variável Independente", y = "Target", title = "Valores Ajustados com Intervalo de Predição para as Primeiras 10 Observações")
 
 
 ```
+
 ```{r}
 # Fazer previsões nos dados de validação
-predictions <- predict(modelo2, newdata = ValidSet)
+predictions <- predict(modelo3, newdata = novo_ValidSet)
 ```
 
 ```{r}
 # Calculando o MSE
-mse <- mean((ValidSet$target - predictions)^2)
+mse <- mean((novo_ValidSet$target - predictions)^2)
 
 # Calculando o RMSE
 rmse <- sqrt(mse)
 
 # Calculando o MAE
-mae <- mean(abs(ValidSet$target - predictions))
+mae <- mean(abs(novo_ValidSet$target - predictions))
 
 # Imprimindo os resultados
 cat("MSE:", mse, "\n")
@@ -541,10 +635,10 @@ cat("RMSE:", rmse, "\n")
 cat("MAE:", mae, "\n")
 
 # Calcular a soma dos quadrados dos resíduos (SS_res)
-SS_res <- sum((ValidSet$target - predictions)^2)
+SS_res <- sum((novo_ValidSet$target - predictions)^2)
 
 # Calcular a soma total dos quadrados (SS_tot)
-SS_tot <- sum((ValidSet$target - mean(ValidSet$target))^2)
+SS_tot <- sum((novo_ValidSet$target - mean(novo_ValidSet$target))^2)
 
 # Calcular o R² nos dados de validação
 R2_validation <- 1 - (SS_res / SS_tot)
