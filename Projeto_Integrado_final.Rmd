@@ -91,6 +91,12 @@ summary(df)
 qplot(x=df$target)
 ```
 
+# ```{r grafico_quantitativas}
+# qplot(x=df$x1, y=df$target)
+# 
+# ```
+
+
 ```{r grafico2}
 # grafico de uma variavel qualitativa
 qplot(x=df$x53, geom = "bar")
@@ -105,7 +111,7 @@ qplot(x=df$x61, geom = "bar")
 boxplot(df$target ~ df$x53)
 ```
 
-
+# Separação das variaveis quantitativas, qualitativas e a variavel target
 
 ```{r}
 dadosQuali <- df %>%
@@ -118,10 +124,11 @@ target <- df$target
 
 ```
 
+### Analise descritiva da variavel target
+
 ```{r cnt}
 summary(target)
 ```
-
 ntile() é uma função do dplyr para criar categorias usando os quartis.
 
 ```{r faixa}
@@ -204,17 +211,17 @@ ggplot(freq, aes(x = fxtarget_num, y = freq, fill = quali_x53, label = round(fre
 ```
 
 ```{r}
-
 # names(dadosQuali)
 names(dadosQuant)
-
-
 ```
 
 ```{r grafico33}
 # grafico de duas variaveis quantitativas 
 qplot(x=df$x60, y=df$target)
 ```
+Transformando as variáveis preditoras quantitativas em qualitativas. 
+Nesta função utilizamos o método do Intervalo Interquartil (IQR), todas as colunas que apresentaram outliers são convertidas para qualitativas. 
+Apos a convesão criamos intervalos para cada uma delas, e o número de bins é definido com base na fórmula de Sturges.
 
 ```{r}
 # Função para detectar se uma coluna tem outliers
@@ -235,10 +242,7 @@ transform_to_categories <- function(column) {
 }
 ```
 
-```{r}
-
-```
-
+Aplicando a função para todos os dados quantitativos
 
 ```{r}
 # dadosQuant1 = dadosQuant
@@ -254,8 +258,6 @@ for (col_name in names(dadosQuant)) {
   }
 }
 ```
-
-
 
 ```{r normalizando}
 # Normalização para o intervalo [0, 1]
@@ -293,24 +295,94 @@ library(corrplot)
 corrplot(mc, type="full", method="number")
 ```
 
+<!-- removendo multicolinearidade -->
+
+<!-- ```{r} -->
+<!-- df_norm <- df_norm %>% -->
+<!--   select(-c(x18,x20,x22,x50)) -->
+<!-- ``` -->
+
+<!-- ```{r correlacao2} -->
+<!-- # selecionar somente as variaveis quantitativas -->
+
+<!-- df_corr <- cbind(df_norm,target) -->
+
+<!-- correlacao <- cor(df_corr) -->
+<!-- correlacao -->
+
+<!-- mc <- correlacao -->
+<!-- ``` -->
+
+
+
+<!-- ```{r grafico14} -->
+<!-- library(corrplot) -->
+<!-- #corrplot(mc) -->
+<!-- corrplot(mc, type="full", method="number") -->
+<!-- ``` -->
+
+<!-- ```{r} -->
+<!-- library(DescTools) -->
+<!-- ``` -->
+
+
+<!-- ```{r} -->
+
+<!-- # Encontre as colunas que são fatores -->
+<!-- factor_cols <- names(dadosQuali)[sapply(dadosQuali, is.factor)] -->
+
+<!-- # Defina o limite de correlação para remoção -->
+<!-- threshold <- 0.5 -->
+
+<!-- # Crie uma matriz para armazenar os valores Cramér's V -->
+<!-- cor_matrix <- matrix(NA, length(factor_cols), length(factor_cols)) -->
+<!-- rownames(cor_matrix) <- factor_cols -->
+<!-- colnames(cor_matrix) <- factor_cols -->
+
+<!-- # Calcule Cramér's V para cada par de variáveis categóricas -->
+<!-- for (i in 1:length(factor_cols)) { -->
+<!--     for (j in 1:length(factor_cols)) { -->
+<!--         # Calcula Cramér's V -->
+<!--         tabela_contingencia <- table(dadosQuali[[factor_cols[i]]], dadosQuali[[factor_cols[j]]]) -->
+<!--         cor_matrix[i, j] <- CramerV(tabela_contingencia) -->
+<!--     } -->
+<!-- } -->
+
+<!-- # Encontra variáveis altamente correlacionadas -->
+<!-- high_cor_vars <- which(cor_matrix > threshold & cor_matrix < 1, arr.ind = TRUE) -->
+
+<!-- # Remova as variáveis altamente correlacionadas -->
+<!-- to_remove <- unique(rownames(high_cor_vars)) -->
+<!-- dadosQuali1 <- dadosQuali[, !(names(dadosQuali) %in% to_remove)] -->
+
+<!-- # O conjunto de dados 'dados' agora tem as variáveis altamente correlacionadas removidas. -->
+
+<!-- ``` -->
+
+
+
 
 ```{r criar dummies}
-
+ 
 # Criar uma lista de todas as colunas categóricas, exceto 'x5'
-columns_to_dummy <- setdiff(names(dadosQuali), c("x5", "x28", "x67"))
+# columns_to_dummy <- setdiff(names(dadosQuali), c("x5", "x28", "x67"))
 
 # criar variaveis dummies das variaveis preditoras qualitativas
-var_dummies <- dummy_cols(dadosQuali, select_columns = columns_to_dummy,
+var_dummies <- dummy_cols(dadosQuali, select_columns = names(dadosQuali),
            remove_first_dummy = TRUE,
            remove_selected_columns = TRUE)
 ```
-
 
 ```{r target}
 
 df_modelo <- cbind(df_norm,var_dummies,target)
 
 ```
+
+
+
+
+
 
 ### Modelo de Regressão Linear Múltipla
 ### Dividir a amostra em treino e validação
@@ -341,42 +413,10 @@ summary(ValidSet$target)
 modelo_inicial <- lm(target ~ ., data = TrainSet)
 summary(modelo_inicial)
 ```
-# Rodar apenas se preferir a abordagem de eliminar os p-value
-
 ```{r variaveis_significativas }
-# Obter um sumário do modelo
-summary_modelo <- summary(modelo_inicial)
-
-# Obter os p-values
-p_values <- summary_modelo$coefficients[, 4]
-
-# Selecionar os nomes das variáveis com p-values < 0.05
-variaveis_significativas <- names(p_values)[p_values < 0.05]
-
-# Remover a interceptação (se estiver presente)
-variaveis_significativas <- variaveis_significativas[variaveis_significativas != "(Intercept)"]
-
-# correção de erros
-variaveis_significativas <- str_replace_all(variaveis_significativas,"x51","x5")
-# variaveis_significativas <- str_replace_all(variaveis_significativas,"x281","x28")
-variaveis_significativas <- str_replace_all(variaveis_significativas,"x671","x67")
-
-# Adicionar a coluna target ao vetor de colunas significativas
-colunas_para_manter <- c("target", variaveis_significativas)
-
-# Crie um novo conjunto de dados com apenas as colunas significativas
-# novo_TrainSet <- TrainSet[, colunas_para_manter]
 novo_TrainSet <- TrainSet
-
-# Crie um novo conjunto de dados com apenas as colunas significativas
-# novo_ValidSet <- ValidSet[, colunas_para_manter]
 novo_ValidSet <- ValidSet
-
-# Aplique o modelo de regressão linear usando o novo conjunto de dados
-novo_modelo <- lm(target ~ ., data = novo_TrainSet)
-
-# Veja o resumo do novo modelo
-summary(novo_modelo)
+novo_modelo <- modelo_inicial
 ```
 
 
@@ -425,7 +465,6 @@ TrainSet_1$rp = NULL
 modelo1 <- lm(target ~ ., data = TrainSet_1)
 summary(modelo1)
 ```
-
 
 ```{r previsao2}
 
@@ -616,7 +655,7 @@ ggplot(pred_df[0:50, ], aes(x = x, y = fit)) +
 
 ```{r}
 # Fazer previsões nos dados de validação
-predictions <- predict(modelo3, newdata = novo_ValidSet)
+predictions <- predict(modelo1, newdata = novo_ValidSet)
 ```
 
 ```{r}
@@ -646,5 +685,24 @@ R2_validation <- 1 - (SS_res / SS_tot)
 # Imprimir o R²
 cat("R² nos dados de validação:", R2_validation, "\n")
 ```
+
+```{r}
+# Calcule os erros
+errors <- predictions - novo_ValidSet$target_variable
+
+# Calcule a soma dos quadrados dos erros
+SSE <- sum(errors^2)
+
+# Calcule a média do target variable nos dados de validação
+mean_target <- mean(novo_ValidSet$target_variable)
+
+# Calcule a soma total dos quadrados
+SST <- sum((novo_ValidSet$target_variable - mean_target)^2)
+
+# Calcule o R-squared
+R_squared <- 1 - (SSE/SST)
+R_squared
+```
+
 
 
