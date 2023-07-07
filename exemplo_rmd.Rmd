@@ -1,12 +1,13 @@
 ---
 title: "Projeto Final"
-author: "Caio, Emerson, Tiago, Vinicius"
+author: "Anderson Caio Emerson Tiago Vinicius"
 date: '2023-06-17'
 output: html_document
 ---
 
 ```{r setup, include=FALSE}
 knitr::opts_chunk$set(echo = TRUE)
+knitr::opts_chunk$set(warning = FALSE)
 ```
 
 # Projeto Integrado – final
@@ -133,3 +134,259 @@ A base de dados contém uma coluna chamada id que identifica exclusivamente cada
 | ffd1cdcfc1 | Quantitativa contínua       |
 | id         | Id                          |
 | target     | Quantitativa contínua       |
+
+## 4ª etapa: Preencher o quadro conceitual estatístico.  
+
+| Variável   | Tipo da variável (natureza) |
+|----------|---------------------------|
+| 1.	Plano Básico de Análise | 1.	Importação dos dados. |
+|  | 2.	Limpeza e pré-processamento dos dados. |
+|  | 3.	Análise exploratória dos dados. |
+|  | 4.	Criação de gráficos e visualizações. |
+|  | 5.	Teste de hipóteses ou comparação de grupos. |
+|  | 6.	Ajuste de modelos estatísticos. |
+|  | 7.	Avaliação da qualidade do modelo. |
+|  | 8.	Interpretação dos resultados. |
+|  | 9.	Comunicação dos resultados de forma clara e concisa. |
+
+```{r resultados_notacao}
+# nao mostrar os resultados na notacao cientifica
+options(scipen = 999)
+```
+
+## 5ª etapa: Faça a análise descritiva das variáveis. Apresente os gráficos e as medidas resumos. 
+
+### Import de pacotes utilizados
+
+```{r pacotes, message=FALSE}
+library(tidyverse)
+library(ggplot2)
+library(summarytools)
+library(gmodels)
+library(dplyr)
+library(fastDummies)
+```
+
+### Leitura dos dados train.csv
+
+```{r leitura_dados, message=FALSE}
+library(readr)
+df <- read_csv("./data/train.csv")
+```
+
+Os dados apresentam nomes de colunas dificeis de serem identificadas, então o primeiro passo foi converter todas as colunas das variáveis preditoras para x1,x2,x3,...,xn e criar um dicionario pra identificalas.
+
+```{r dicionario_variaveis}
+# Nomes das colunas que você quer renomear
+colunas_para_renomear <- setdiff(names(df), c("id", "target"))
+
+# Número de colunas para renomear
+num_colunas <- length(colunas_para_renomear)
+
+# Inicializando o dicionário
+dicionario <- list()
+
+# Renomear as colunas para x1, x2, x3, ... e criar o dicionario
+for (i in 1:num_colunas) {
+    colname <- colunas_para_renomear[i]
+    new_colname <- paste("x", i, sep="")
+    
+    # Adicionando ao dicionário
+    dicionario[[new_colname]] <- colname
+    
+    print(paste(colname, "->", new_colname))
+    
+    # Renomeando a coluna
+    names(df)[names(df) == colname] <- new_colname
+}
+```
+Durante nossa analise identificamos todas as variaveis qualitativas e as transformamos em variaveis do tipo factor.
+
+```{r variaveis_qualitativas}
+df$x2 <- factor(df$x2)
+df$x5 <- factor(df$x5)
+df$x27 <- factor(df$x27)
+df$x28 <- factor(df$x28)
+df$x53 <- factor(df$x53, ordered=TRUE)
+df$x59 <- factor(df$x59)
+df$x62 <- factor(df$x62)
+df$x67 <- factor(df$x67)
+df$x78 <- factor(df$x78)
+df$x91 <- factor(df$x91)
+df$x100 <- factor(df$x100)
+
+```
+
+Com as variaveis devidamente transformadas fazemos a analise descritiva(Conhecer as variaveis):
+
+```{r analise_descritiva}
+# medidas resumo
+summary(df)
+```
+
+### Grafico univariado da target
+
+```{r Grafico_univariado_da_target}
+# grafico de uma variavel
+qplot(x=df$target)
+```
+#### Separamos as variaveis quantitativas, qualitativas e a variavel target para fazermos manipulações de maneira mais facil
+
+```{r separacao_variaveis}
+dadosQuali <- df %>%
+  select(x2,x5,x27,x28,x53,x59,x62,x67,x78,x91,x100)
+
+dadosQuant <- df %>%
+  select(-c(id,target,x2,x5,x27,x28,x53,x59,x62,x67,x78,x91,x100))
+
+target <- df$target
+
+```
+
+### Análise bivariada das variáveis qualitativas
+
+```{r analise_bivariada_variaveis_qualitativas}
+
+# Gráficos de barras para x2 e x5
+barplot(table(df$x2), main="Gráfico de barras de x2", xlab="x2")
+barplot(table(df$x5), main="Gráfico de barras de x5", xlab="x5")
+barplot(table(df$x27), main="Gráfico de barras de x27", xlab="x27")
+barplot(table(df$x28), main="Gráfico de barras de x28", xlab="x28")
+barplot(table(df$x53), main="Gráfico de barras de x53", xlab="x53")
+barplot(table(df$x59), main="Gráfico de barras de x59", xlab="x59")
+barplot(table(df$x62), main="Gráfico de barras de x62", xlab="x62")
+barplot(table(df$x67), main="Gráfico de barras de x67", xlab="x67")
+barplot(table(df$x78), main="Gráfico de barras de x78", xlab="x78")
+barplot(table(df$x91), main="Gráfico de barras de x91", xlab="x91")
+barplot(table(df$x100), main="Gráfico de barras de x100", xlab="x100")
+
+```
+
+# 6ª etapa: Faça a análise bivariada das variáveis qualitativas. 
+
+Analise da variavel target vs x53, x5, x28 e x67
+
+Primeiro passo: transformar a variavel quantitativa (target) em uma qualitativa (faixa de target)
+
+Criterio: fórmula de Sturges
+
+```{r calculo_faixa_sturges}
+
+# Calcular o número de bins usando a fórmula de Sturges
+n <- length(df$target)
+k <- round(1 + 3.322 * log10(n))
+
+```
+
+#### Para análise bivariada das variáveis qualitativas criamos as faixas de valores para variavel target.
+
+```{r faixa_sturges}
+
+# Criar a variável faixa de target
+df1 <- df
+
+# Usando cut para criar as faixas e labels apropriadas
+df1$fxtarget_cat <- cut(df$target, breaks = k, include.lowest = TRUE, dig.lab = 10)
+
+# Converter para um fator ordenado
+df1$fxtarget_cat <- factor(df1$fxtarget_cat, ordered = TRUE)
+
+# Mostrando as frequências das faixas
+freq(df1$fxtarget_cat)
+
+```
+### a)	Tabela de frequência bivariada
+### b)	Teste Qui-quadrado.
+
+Como resultado do CrossTable temos uma	tabela de frequência bivariada que compara duas variáveis categóricas e tambem ja nos apresenta o teste Qui-quadrado como output.
+
+Statistics for All Table Factors: Nesta seção, temos o resultado do teste qui-quadrado de Pearson que testa a independência entre as duas variáveis categóricas.
+
+* Chi^2: O valor da estatística qui-quadrado.
+* d.f.: Os graus de liberdade para o teste.
+* p: O valor-p associado ao teste qui-quadrado. quando este valor é extremamente próximo de 0, sugere que podemos rejeitar a hipótese nula de que as duas variáveis são independentes.
+
+CrossTable (x53 e target)
+
+```{r frequencia_bivariada_Qui_quadrado_x53}
+df1$quali_x53 <- factor(df1$x53)
+
+CrossTable(df1$fxtarget_cat,df1$quali_x53, prop.r = FALSE, prop.c = FALSE, prop.t = FALSE,
+           prop.chisq = FALSE,chisq = TRUE)
+
+```
+CrossTable (x5 e target)
+
+```{r frequencia_bivariada_Qui_quadrado_x5}
+df1$quali_x5 <- factor(df1$x5)
+
+CrossTable(df1$fxtarget_cat,df1$quali_x5, prop.r = FALSE, prop.c = FALSE, prop.t = FALSE,
+           prop.chisq = FALSE,chisq = TRUE)
+
+```
+CrossTable (x28 e target)
+
+```{r frequencia_bivariada_Qui_quadrado_x28}
+df1$quali_x28 <- factor(df1$x28)
+
+CrossTable(df1$fxtarget_cat,df1$quali_x28, prop.r = FALSE, prop.c = FALSE, prop.t = FALSE,
+           prop.chisq = FALSE,chisq = TRUE)
+
+```
+CrossTable (x67 e target)
+
+```{r frequencia_bivariada_Qui_quadrado_x67}
+df1$quali_x67 <- factor(df1$x67)
+
+CrossTable(df1$fxtarget_cat,df1$quali_x67, prop.r = FALSE, prop.c = FALSE, prop.t = FALSE,
+           prop.chisq = FALSE,chisq = TRUE)
+
+```
+## c)	Gráfico 100% empilhado
+
+```{r Grafico_100_empilhado_x53}
+ggplot(df1, aes(fill = fxtarget_cat, x = quali_x53)) +
+  geom_bar(position = "fill") +
+  geom_text(
+    aes(label = paste0(round(100 * ..count../sum(..count..), 2), "%"),
+        y = ..count..),
+    position = position_fill(vjust = 0.5),
+    stat = "count",
+    size = 3,
+    color = "white"  # Definir a cor do label como branca
+  ) +
+  labs(y = "Porcentagem", x = "Quali x53", title = "Gráfico 100% Empilhado de target_cat por x53") +
+  scale_y_continuous(labels = scales::percent_format(scale = 1))
+```
+
+```{r Grafico_100_empilhado_x5}
+ggplot(df1, aes(fill = fxtarget_cat, x = quali_x5)) +
+  geom_bar(position = "fill") +
+  geom_text(
+    aes(label = paste0(round(100 * ..count../sum(..count..), 2), "%"),
+        y = ..count..),
+    position = position_fill(vjust = 0.5),
+    stat = "count",
+    size = 3,
+    color = "white"  # Definir a cor do label como branca
+  ) +
+  labs(y = "Porcentagem", x = "Quali x5", title = "Gráfico 100% Empilhado de target_cat por x5") +
+  scale_y_continuous(labels = scales::percent_format(scale = 1))
+```
+
+## 7ª etapa: Faça a análise bivariada das variáveis quantitativas. 
+
+### e)	Análise de correlação de Pearson.
+### f)	Matriz de correlação de Pearson.
+
+Selecionando as top 10 variaveis preditoras para fazermos a análise bivariada das variáveis quantitativas utilizando a correlação de pearson
+
+#### 1º passo - Aplicar correlação de pearson nas variaveis quantitativas
+
+```{r correlacao_pearson}
+df_quant_corr <- cbind(dadosQuant,target)
+
+# Calculando a matriz de correlação de pearson
+correlacao <- cor(df_quant_corr)
+head(correlacao)
+```
