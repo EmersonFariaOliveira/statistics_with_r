@@ -1,6 +1,6 @@
 ---
 title: "Projeto Final"
-author: "Caio Emerson Tiago Vinicius"
+author: "Anderson Caio Emerson Tiago Vinicius"
 date: '2023-06-17'
 output: html_document
 ---
@@ -9,6 +9,7 @@ output: html_document
 knitr::opts_chunk$set(echo = TRUE)
 ```
 
+## Import de pacotes utilizados
 
 ```{r pacotes}
 library(tidyverse)
@@ -19,8 +20,9 @@ library(dplyr)
 library(fastDummies)
 ```
 
+## Leitura dos dados train.csv
 
-```{r leitura}
+```{r leitura_dados}
 
 # nao mostrar os resultados na notacao cientifica
 options(scipen = 999)
@@ -28,8 +30,9 @@ options(scipen = 999)
 library(readr)
 df <- read_csv("./data/train.csv")
 ```
+## Os dados apresentam nomes de colunas dificeis de serem identificadas, então o primeiro passo foi converter todas as colunas das variáveis preditoras para x1,x2,x3,...,xn e criar um dicionario pra identificalas.
 
-```{r}
+```{r dicionario_variaveis}
 # Nomes das colunas que você quer renomear
 colunas_para_renomear <- setdiff(names(df), c("id", "target"))
 
@@ -47,19 +50,16 @@ for (i in 1:num_colunas) {
     # Adicionando ao dicionário
     dicionario[[new_colname]] <- colname
     
+    print(paste(colname, "->", new_colname))
+    
     # Renomeando a coluna
     names(df)[names(df) == colname] <- new_colname
 }
-
-# Visualizando o dicionario
-# dicionario
 ```
 
+### Durante nossa analise identificamos todas as variaveis qualitativas e as transformamos em variaveis do tipo factor.
 
-
-### Mudar as variaveis quantitativas em qualitativas
-
-```{r}
+```{r variaveis_qualitativas}
 df$x2 <- factor(df$x2)
 df$x5 <- factor(df$x5)
 df$x27 <- factor(df$x27)
@@ -74,46 +74,26 @@ df$x100 <- factor(df$x100)
 
 ```
 
-
-### Analise descritiva
+# 5ª etapa: Faça a análise descritiva das variáveis. Apresente os gráficos e as medidas resumos. 
+## Com as variaveis devidamente transformadas fazemos a analise descritiva:
 
 Conhecer as variaveis
 
-```{r descritiva}
+```{r analise_descritiva}
 # medidas resumo
 summary(df)
 ```
 
-### Grafico univariado
+### Grafico univariado da target
 
-```{r grafico1}
-# grafico de uma variavel quantitativa
+```{r Grafico_univariado_da_target}
+# grafico de uma variavel
 qplot(x=df$target)
 ```
 
-# ```{r grafico_quantitativas}
-# qplot(x=df$x1, y=df$target)
-# 
-# ```
+# Separamos as variaveis quantitativas, qualitativas e a variavel target para fazermos manipulações de maneira mais facil
 
-
-```{r grafico2}
-# grafico de uma variavel qualitativa
-qplot(x=df$x53, geom = "bar")
-```
-
-```{r grafico2}
-# grafico de uma variavel qualitativa
-qplot(x=df$x61, geom = "bar")
-```
-
-```{r grafico5}
-boxplot(df$target ~ df$x53)
-```
-
-# Separação das variaveis quantitativas, qualitativas e a variavel target
-
-```{r}
+```{r separacao_variaveis}
 dadosQuali <- df %>%
   select(x2,x5,x27,x28,x53,x59,x62,x67,x78,x91,x100)
 
@@ -124,106 +104,204 @@ target <- df$target
 
 ```
 
-### Analise descritiva da variavel target
+## Análise bivariada das variáveis qualitativas
 
-```{r cnt}
-summary(target)
+```{r analise_bivariada_variaveis_qualitativas}
+
+# Gráficos de barras para x2 e x5
+barplot(table(df$x2), main="Gráfico de barras de x2", xlab="x2")
+barplot(table(df$x5), main="Gráfico de barras de x5", xlab="x5")
+barplot(table(df$x27), main="Gráfico de barras de x27", xlab="x27")
+barplot(table(df$x28), main="Gráfico de barras de x28", xlab="x28")
+barplot(table(df$x53), main="Gráfico de barras de x53", xlab="x53")
+barplot(table(df$x59), main="Gráfico de barras de x59", xlab="x59")
+barplot(table(df$x62), main="Gráfico de barras de x62", xlab="x62")
+barplot(table(df$x67), main="Gráfico de barras de x67", xlab="x67")
+barplot(table(df$x78), main="Gráfico de barras de x78", xlab="x78")
+barplot(table(df$x91), main="Gráfico de barras de x91", xlab="x91")
+barplot(table(df$x100), main="Gráfico de barras de x100", xlab="x100")
+
 ```
-ntile() é uma função do dplyr para criar categorias usando os quartis.
 
-```{r faixa}
+# 6ª etapa: Faça a análise bivariada das variáveis qualitativas. 
 
+## a)	Tabela de frequência bivariada
+## b)	Teste Qui-quadrado.
+
+Analise da variavel target vs x53, x5, x28 e x67
+
+Primeiro passo: transformar a variavel quantitativa (target) em uma qualitativa (faixa de target)
+
+Criterio: fórmula de Sturges
+
+```{r calculo_faixa_sturges}
+
+# Calcular o número de bins usando a fórmula de Sturges
+n <- length(df$target)
+k <- round(1 + 3.322 * log10(n))
+
+```
+
+Para análise bivariada das variáveis qualitativas criamos as faixas de valores para variavel target.
+
+```{r faixa_sturges}
+
+# Criar a variável faixa de target
 df1 <- df
 
-# Criar a variavel faixa de cnt
-df1$fxtarget_num <- ntile(df$target, 4)  
-df1$fxtarget_cat <- factor(df1$fxtarget_num, levels=c(1,2,3,4),labels = c(labels=c("[ -0.2398 a 0.5031]", "(0.5031 a 0.9838]",
-                                                                                    "(0.9838 a 1.6609]",  "(1.6609 a 61.3261]")))
-df1$fxtarget_cat <- factor(df1$fxtarget_cat, ordered =TRUE)
+# Usando cut para criar as faixas e labels apropriadas
+df1$fxtarget_cat <- cut(df$target, breaks = k, include.lowest = TRUE, dig.lab = 10)
+
+# Converter para um fator ordenado
+df1$fxtarget_cat <- factor(df1$fxtarget_cat, ordered = TRUE)
+
+# Mostrando as frequências das faixas
 freq(df1$fxtarget_cat)
 
 ```
+Temos uma	tabela de frequência bivariada que compara duas variáveis categóricas e tambem ja nos apresenta o teste Qui-quadrado como output.
 
-```{r tabela1a}
+Statistics for All Table Factors: Nesta seção, temos o resultado do teste qui-quadrado de Pearson que testa a independência entre as duas variáveis categóricas.
+
+* Chi^2: O valor da estatística qui-quadrado.
+* d.f.: Os graus de liberdade para o teste.
+* p: O valor-p associado ao teste qui-quadrado. quando este valor é extremamente próximo de 0, sugere que podemos rejeitar a hipótese nula de que as duas variáveis são independentes.
+
+```{r frequencia_bivariada_Qui_quadrado_x53}
 df1$quali_x53 <- factor(df1$x53)
 
 CrossTable(df1$fxtarget_cat,df1$quali_x53, prop.r = FALSE, prop.c = FALSE, prop.t = FALSE,
-           prop.chisq = FALSE,chisq = FALSE)
+           prop.chisq = FALSE,chisq = TRUE)
 
 ```
-```{r tabela1a}
+
+```{r frequencia_bivariada_Qui_quadrado_x5}
 df1$quali_x5 <- factor(df1$x5)
 
 CrossTable(df1$fxtarget_cat,df1$quali_x5, prop.r = FALSE, prop.c = FALSE, prop.t = FALSE,
-           prop.chisq = FALSE,chisq = FALSE)
+           prop.chisq = FALSE,chisq = TRUE)
 
 ```
-```{r tabela1a}
+
+```{r frequencia_bivariada_Qui_quadrado_x28}
 df1$quali_x28 <- factor(df1$x28)
 
 CrossTable(df1$fxtarget_cat,df1$quali_x28, prop.r = FALSE, prop.c = FALSE, prop.t = FALSE,
-           prop.chisq = FALSE,chisq = FALSE)
+           prop.chisq = FALSE,chisq = TRUE)
 
 ```
 
-```{r tabela1a}
-df1$quali_9a575e82a4 <- factor(df1$x67)
+```{r frequencia_bivariada_Qui_quadrado_x67}
+df1$quali_x67 <- factor(df1$x67)
 
-CrossTable(df1$fxtarget_cat,df1$quali_9a575e82a4, prop.r = FALSE, prop.c = FALSE, prop.t = FALSE,
-           prop.chisq = FALSE,chisq = FALSE)
+CrossTable(df1$fxtarget_cat,df1$quali_x67, prop.r = FALSE, prop.c = FALSE, prop.t = FALSE,
+           prop.chisq = FALSE,chisq = TRUE)
+
+```
+## c)	Gráfico 100% empilhado
+
+```{r Grafico_100_empilhado_x53}
+ggplot(df1, aes(fill = fxtarget_cat, x = quali_x53)) +
+  geom_bar(position = "fill") +
+  geom_text(
+    aes(label = paste0(round(100 * ..count../sum(..count..), 2), "%"),
+        y = ..count..),
+    position = position_fill(vjust = 0.5),
+    stat = "count",
+    size = 3,
+    color = "white"  # Definir a cor do label como branca
+  ) +
+  labs(y = "Porcentagem", x = "Quali x53", title = "Gráfico 100% Empilhado de target_cat por x53") +
+  scale_y_continuous(labels = scales::percent_format(scale = 1))
+```
+
+```{r Grafico_100_empilhado_x5}
+ggplot(df1, aes(fill = fxtarget_cat, x = quali_x5)) +
+  geom_bar(position = "fill") +
+  geom_text(
+    aes(label = paste0(round(100 * ..count../sum(..count..), 2), "%"),
+        y = ..count..),
+    position = position_fill(vjust = 0.5),
+    stat = "count",
+    size = 3,
+    color = "white"  # Definir a cor do label como branca
+  ) +
+  labs(y = "Porcentagem", x = "Quali x53", title = "Gráfico 100% Empilhado de target_cat por x5") +
+  scale_y_continuous(labels = scales::percent_format(scale = 1))
+```
+
+# 7ª etapa: Faça a análise bivariada das variáveis quantitativas. 
+
+## d)	Gráfico de dispersão.
+## e)	Análise de correlação de Pearson.
+## f)	Matriz de correlação de Pearson.
+
+Selecionando as top 10 variaveis preditoras para fazermos a análise bivariada das variáveis quantitativas utilizando a correlação de pearson
+
+### 1º passo - Aplicar correlação de pearson nas variaveis quantitativas
+```{r correlacao_pearson}
+df_quant_corr <- cbind(dadosQuant,target)
+
+# Calculando a matriz de correlação de pearson
+correlacao <- cor(df_quant_corr)
+correlacao
+```
+
+### 2º passo - Filtrar as top 10 pegando os coeficientes de correlação entre as variaveis preditoras e a variável target
+
+```{r correlacao_pearson_top_10}
+# Pegando os coeficientes de correlação para a variável target
+correlacao_com_target <- correlacao[,"target"]
+
+# Removendo a correlação da variável target com ela mesma
+correlacao_com_target <- correlacao_com_target[-which(names(correlacao_com_target) == "target")]
+
+# Ordenando em valor absoluto
+ordenado <- sort(abs(correlacao_com_target), decreasing = TRUE)
+
+# Selecionando as top 10
+top_10 <- ordenado[1:10]
+top_10
+```
+
+### 3º passo - Fazer a analise bivariada das variáveis quantitativas
+
+```{r analise_bivariada_variaveis_quantitativas}
+# Histogramas para x1 e x3
+hist(df$x20, main="Histograma de x20", xlab="x20")
+hist(df$x101, main="Histograma de x101", xlab="x101")
+hist(df$x75, main="Histograma de x75", xlab="x75")
+hist(df$x63, main="Histograma de x63", xlab="x63")
+hist(df$x57, main="Histograma de x57", xlab="x57")
+hist(df$x94, main="Histograma de x94", xlab="x94")
+hist(df$x96, main="Histograma de x96", xlab="x96")
+hist(df$x18, main="Histograma de x18", xlab="x18")
+hist(df$x105, main="Histograma de x105", xlab="x105")
+hist(df$x45, main="Histograma de x45", xlab="x45")
+
+# Gráficos de dispersão de x1 e x3 em relação à variável target
+plot(df$x20, df$target, main="x20 vs Target", xlab="x20", ylab="Target")
+plot(df$x101, df$target, main="x101 vs Target", xlab="x101", ylab="Target")
+plot(df$x75, df$target, main="x75 vs Target", xlab="x75", ylab="Target")
+plot(df$x63, df$target, main="x63 vs Target", xlab="x63", ylab="Target")
+plot(df$x57, df$target, main="x57 vs Target", xlab="x57", ylab="Target")
+plot(df$x94, df$target, main="x94 vs Target", xlab="x94", ylab="Target")
+plot(df$x96, df$target, main="x96 vs Target", xlab="x96", ylab="Target")
+plot(df$x18, df$target, main="x18 vs Target", xlab="x18", ylab="Target")
+plot(df$x105, df$target, main="x105 vs Target", xlab="x105", ylab="Target")
+plot(df$x45, df$target, main="x45 vs Target", xlab="x45", ylab="Target")
 
 ```
 
+# 9ª etapa: Construção do modelo preditivo. 
 
-```{r grafico15}
-# frequencia de season
-freq_total <- df1 %>%
-  select(fxtarget_cat) %>%
-  group_by(fxtarget_cat) %>%
-  summarise(obs = n()) %>%
-  mutate(freq = obs/sum(obs)*100) %>%
-  mutate(quali_x53 = ifelse(fxtarget_cat =="[ -0.2398 a 0.5031]", "1",
-                               ifelse(fxtarget_cat =="(0.5031 a 0.9838]","2",
-                                      ifelse(fxtarget_cat =="(0.9838 a 1.6609]","3","4")))) %>%
-  mutate(fxtarget_num=5) %>%
-  relocate(fxtarget_num, .before = fxtarget_cat) %>%
-  relocate(quali_x53, .after = fxtarget_cat) 
+## Variaveis quantitativas
 
-                                                                                   
-
-# frequencia de season por faixa de target
-freq_fxtarget <- df1 %>%
-  select(fxtarget_num, fxtarget_cat,quali_x53) %>%
-  group_by(fxtarget_num, fxtarget_cat,quali_x53) %>%
-  summarise(obs = n()) %>%
-  mutate(freq = obs/sum(obs)*100)
-  
-# append  
-freq <- rbind(freq_fxtarget,freq_total)  
-
-
-ggplot(freq, aes(x = fxtarget_num, y = freq, fill = quali_x53, label = round(freq, 1))) +
-  geom_col() +
-  geom_text(position = position_stack(vjust = 0.5)) +
-  labs(title= "Demanda de bikes segundo a estacao do ano",
-            x= "Target", y="%") 
-  
-```
-
-```{r}
-# names(dadosQuali)
-names(dadosQuant)
-```
-
-```{r grafico33}
-# grafico de duas variaveis quantitativas 
-qplot(x=df$x60, y=df$target)
-```
 Transformando as variáveis preditoras quantitativas em qualitativas. 
 Nesta função utilizamos o método do Intervalo Interquartil (IQR), todas as colunas que apresentaram outliers são convertidas para qualitativas. 
 Apos a convesão criamos intervalos para cada uma delas, e o número de bins é definido com base na fórmula de Sturges.
 
-```{r}
+```{r funcoes_IQR}
 # Função para detectar se uma coluna tem outliers
 detect_outliers <- function(column) {
   Q1 <- quantile(column, 0.25)
@@ -244,13 +322,15 @@ transform_to_categories <- function(column) {
 
 Aplicando a função para todos os dados quantitativos
 
-```{r}
+```{r aplicacao_funcao}
 # dadosQuant1 = dadosQuant
-
+col_quant_qual <- c()
 # Processando cada coluna do dataset
 for (col_name in names(dadosQuant)) {
   if (is.numeric(dadosQuant[[col_name]])) {
     if (detect_outliers(dadosQuant[[col_name]])) {
+      col_quant_qual <- c(col_quant_qual, col_name)
+      
       dadosQuali[[col_name]] <- as.factor(transform_to_categories(dadosQuant[[col_name]]))
       dadosQuant[[col_name]] <- NULL
       cat(sprintf("Transformed column '%s' into categories\n", col_name))
@@ -258,6 +338,7 @@ for (col_name in names(dadosQuant)) {
   }
 }
 ```
+Normalizando os dados quantitativos que não apresentaram outliers para o treinamento do modelo
 
 ```{r normalizando}
 # Normalização para o intervalo [0, 1]
@@ -267,15 +348,7 @@ df_norm <- dadosQuant %>%
 ```
 
 
-### Análise de correlacao de Pearson
-
-Escala das Variáveis: Se as variáveis que você está analisando têm escalas muito diferentes, a normalização pode ser útil. Por exemplo, se uma variável é a idade (variando de 0 a 100) e outra é o salário anual (variando de 0 a milhões), os resultados da análise bivariada podem ser afetados pela diferença de escalas.
-
-Distribuição dos Dados: Se os dados têm uma distribuição muito inclinada ou assimétrica, às vezes é útil normalizar ou transformar os dados para fazer com que sua distribuição seja mais próxima da normal. Isso pode ser especialmente importante se você planeja usar métodos estatísticos que assumem uma distribuição normal.
-
-Técnicas de Análise: Algumas técnicas de análise bivariada, como a correlação de Pearson, são sensíveis à escala dos dados. Nesses casos, a normalização pode ser necessária para obter resultados significativos.
-
-Interpretação e Visualização: Em alguns casos, a normalização pode facilitar a interpretação dos resultados e a criação de visualizações mais eficazes.
+Análise de correlacao de Pearson para variaveis quantitativas que não possuem outlier
 
 ```{r correlacao}
 # selecionar somente as variaveis quantitativas
@@ -287,9 +360,9 @@ correlacao
 
 mc <- correlacao
 ```
+Matriz de correlação das variaveis quantitativas com a target
 
-
-```{r grafico13}
+```{r correlacao_grafico}
 library(corrplot)
 #corrplot(mc)
 corrplot(mc, type="full", method="number")
@@ -359,10 +432,11 @@ corrplot(mc, type="full", method="number")
 
 <!-- ``` -->
 
+## Variaveis qualitativas
 
+Criando as variaveis dummy
 
-
-```{r criar dummies}
+```{r criar_dummies}
  
 # Criar uma lista de todas as colunas categóricas, exceto 'x5'
 # columns_to_dummy <- setdiff(names(dadosQuali), c("x5", "x28", "x67"))
@@ -372,22 +446,37 @@ var_dummies <- dummy_cols(dadosQuali, select_columns = names(dadosQuali),
            remove_first_dummy = TRUE,
            remove_selected_columns = TRUE)
 ```
-
-```{r target}
+```{r df_modelo}
 
 df_modelo <- cbind(df_norm,var_dummies,target)
 
 ```
 
+## g)	Selecionar as variáveis preditoras.
+Apos o tratamento dos dados temos um dataframe com 4261 variaveis preditoras.
+
+```{r num_preditoras}
+
+paste("Preditoras:",length(names(df_modelo))-1)
+
+```
+
+## h)	Definir a variável resposta.
+
+Apos o tratamento dos dados temos um dataframe com 1 coluna target.
+
+```{r num_target}
+
+paste("Target",length(names(df_modelo))-4261)
+
+```
 
 
+## i)	Rodar o modelo de Regressão Linear Múltipla.
 
+### Dividir a amostra em treino e validação (70/30 %)
 
-
-### Modelo de Regressão Linear Múltipla
-### Dividir a amostra em treino e validação
-
-```{r amostras}
+```{r amostras_split}
 
 #Dividir em duas amostras
 set.seed(1010)
@@ -399,28 +488,29 @@ ValidSet <- df_modelo[-train,]
 
 ### Comparar a variável resposta nas duas amostras
 
-```{r amostra1}
+```{r summary_amostra_train}
 summary(TrainSet$target)
-
 ```
 
-
-```{r amostra2}
+```{r summary_amostra_valid}
 summary(ValidSet$target)
 ```
-### Rodar o modelo
-```{r modelo}
+
+### Rodar o modelo inicial
+```{r modelo_inicial}
 modelo_inicial <- lm(target ~ ., data = TrainSet)
 summary(modelo_inicial)
 ```
-```{r variaveis_significativas }
+
+```{r variaveis_significativas_modelo_inicial }
 novo_TrainSet <- TrainSet
 novo_ValidSet <- ValidSet
 novo_modelo <- modelo_inicial
 ```
 
+Calculando os resíduos padronizados do modelo
 
-```{r previsao1}
+```{r previsao_modelo_inicial}
 
 novo_TrainSet$Val_pred <- predict(novo_modelo) 
 novo_TrainSet$residuo  <- resid(novo_modelo)
@@ -428,27 +518,26 @@ novo_TrainSet$rp <- rstandard(novo_modelo)
 
 ```
 
-
-```{r rmse1}
-# Erro quadratico medio na amostra de treino
+## k)	Calcular as medidas de erros do modelo na amostra train.csv.
+Erro quadratico medio na amostra de treino
+```{r rmse_modelo_inicial}
 mse <- mean((novo_TrainSet$target - novo_TrainSet$Val_pred)^2)
 sqrt(mse)
-
 ```
-### Análise dos resíduos do modelo
-
-```{r residuo1}
+## j)	Análise de resíduos
+```{r residuo_modelo_inicial}
 plot(predict(novo_modelo),novo_TrainSet$residuo, xlab = "Preditor linear",ylab = "Residuos")
 abline(h = 0, lty = 2)
 
 ```
-```{r normalidade1}
+```{r normalidade_modelo_inicial}
 qqnorm(residuals(novo_modelo), ylab="Residuos",xlab="Quantis teoricos",main="")
 qqline(residuals(novo_modelo))
 ```
 
+Excluindo os outliers 
 
-```{r excluir_outlier1}
+```{r excluir_outlier_modelo_inicial}
 
 #Excluir os outliers
 TrainSet_1 <-filter(novo_TrainSet,novo_TrainSet$rp>=-2&novo_TrainSet$rp<=2) 
@@ -460,13 +549,16 @@ TrainSet_1$residuo = NULL
 TrainSet_1$rp = NULL
 ```
 
-### Rodar o modelo
-```{r modelo}
+Re-treino do modelo1 sem os outliers
+
+```{r modelo1}
 modelo1 <- lm(target ~ ., data = TrainSet_1)
 summary(modelo1)
 ```
 
-```{r previsao2}
+Calculando os resíduos padronizados do modelo1
+
+```{r previsao_modelo1}
 
 TrainSet_1$Val_pred <- predict(modelo1) 
 TrainSet_1$residuo  <- resid(modelo1)
@@ -474,31 +566,31 @@ TrainSet_1$rp <- rstandard(modelo1)
 
 ```
 
-```{r analise2}
-df_analise1 <- TrainSet_1 %>%
-  select(target, Val_pred, residuo, rp)
-```
+Erro quadratico medio na amostra de treino modelo1
 
-
-```{r rmse1}
+```{r rmse_modelo1}
 # Erro quadratico medio na amostra de treino
 mse1 <- mean((TrainSet_1$target - TrainSet_1$Val_pred)^2)
 sqrt(mse1)
 
 ```
-### Análise dos resíduos do modelo
 
-```{r residuo2}
+Análise de resíduos modelo1
+
+```{r residuo_modelo1}
 plot(predict(modelo1),TrainSet_1$residuo, xlab = "Preditor linear",ylab = "Residuos")
 abline(h = 0, lty = 2)
 
 ```
 
-```{r normalidade2}
+```{r normalidade_modelo1}
 qqnorm(residuals(modelo1), ylab="Residuos",xlab="Quantis teoricos",main="")
 qqline(residuals(modelo1))
 ```
-```{r excluir_outlier2}
+
+Excluindo os outliers modelo1
+
+```{r excluir_outlier_modelo1}
 
 #Excluir os outliers
 TrainSet_2 <-filter(TrainSet_1,TrainSet_1$rp>=-2&TrainSet_1$rp<=2) 
@@ -511,12 +603,12 @@ TrainSet_2$rp = NULL
 ```
 
 ### Rodar o modelo
-```{r modelo3}
+```{r modelo2}
 modelo2 <- lm(target ~ ., data = TrainSet_2)
 summary(modelo2)
 ```
 
-```{r previsao3}
+```{r previsao_modelo2}
 
 TrainSet_2$Val_pred <- predict(modelo2) 
 TrainSet_2$residuo  <- resid(modelo2)
@@ -524,13 +616,13 @@ TrainSet_2$rp <- rstandard(modelo2)
 
 ```
 
-```{r analise3}
+```{r analise_modelo2}
 df_analise2 <- TrainSet_2 %>%
   select(target, Val_pred, residuo, rp)
 ```
 
 
-```{r rmse3}
+```{r rmse_modelo2}
 # Erro quadratico medio na amostra de treino
 mse2 <- mean((TrainSet_2$target - TrainSet_2$Val_pred)^2)
 sqrt(mse2)
@@ -538,18 +630,18 @@ sqrt(mse2)
 ```
 ### Análise dos resíduos do modelo
 
-```{r residuo3}
+```{r residuo_modelo2}
 plot(predict(modelo2),TrainSet_2$residuo, xlab = "Preditor linear",ylab = "Residuos")
 abline(h = 0, lty = 2)
 
 ```
 
-```{r normalidade3}
+```{r normalidade_modelo2}
 qqnorm(residuals(modelo2), ylab="Residuos",xlab="Quantis teoricos",main="")
 qqline(residuals(modelo2))
 ```
 
-```{r excluir_outlier3}
+```{r excluir_outlier_modelo2}
 
 #Excluir os outliers
 TrainSet_3 <-filter(TrainSet_2,TrainSet_2$rp>=-2&TrainSet_2$rp<=2) 
@@ -562,12 +654,12 @@ TrainSet_3$rp = NULL
 ```
 
 ### Rodar o modelo
-```{r modelo4}
+```{r modelo3}
 modelo3 <- lm(target ~ ., data = TrainSet_3)
 summary(modelo3)
 ```
 
-```{r previsao4}
+```{r previsao_modelo3}
 
 TrainSet_3$Val_pred <- predict(modelo3) 
 TrainSet_3$residuo  <- resid(modelo3)
@@ -575,13 +667,13 @@ TrainSet_3$rp <- rstandard(modelo3)
 
 ```
 
-```{r analise4}
+```{r analise_modelo3}
 df_analise3 <- TrainSet_3 %>%
   select(target, Val_pred, residuo, rp)
 ```
 
 
-```{r rmse4}
+```{r rmse_modelo3}
 # Erro quadratico medio na amostra de treino
 mse3 <- mean((TrainSet_3$target - TrainSet_3$Val_pred)^2)
 sqrt(mse3)
@@ -589,12 +681,12 @@ sqrt(mse3)
 ```
 ### Análise dos resíduos do modelo
 
-```{r residuo4}
+```{r residuo_modelo3}
 plot(predict(modelo3),TrainSet_3$residuo, xlab = "Preditor linear",ylab = "Residuos")
 abline(h = 0, lty = 2)
 
 ```
-```{r normalidade4}
+```{r normalidade_modelo3}
 qqnorm(residuals(modelo3), ylab="Residuos",xlab="Quantis teoricos",main="")
 qqline(residuals(modelo3))
 ```
@@ -604,105 +696,265 @@ qqline(residuals(modelo3))
 ##                           AMOSTRA DE VALIDACAO
 ##---------------------------------------------------------------------------------------
 
-
-```{r amostra_validacao}
-
-# Amostra de validacao
-
-target_pred <- predict(modelo2, interval = "prediction", level = 0.95,
-                    newdata = ValidSet, se.fit = T) 
-
-target_pred1 <-target_pred$fit
-ValidSet_pred=cbind(ValidSet,target_pred1)
-```
-
-
-```{r residuo_validacao}
-# Residuo na amostra de validacao
-residuo_valid <- ValidSet_pred$target - ValidSet_pred$fit
-hist(residuo_valid)
-qqnorm(residuo_valid, ylab="Res?duos",xlab="Quantis te?ricos",main="")
-qqline(residuo_valid)
-```
-
-
-
-```{r rmse_validacao}
-
-# Erro quadratico medio na amostra de validacao
-mse2 <- mean((ValidSet_pred$target - ValidSet_pred$fit)^2)
-sqrt(mse2)
-```
-```{r}
-library(ggplot2)
-
-# Convertendo as previsões para um data.frame
-pred_df <- as.data.frame(target_pred$fit)
-
-# Adicionando a variável independente ou índice ao data.frame (se necessário)
-# Substitua variavel_independente pelo nome da sua variável independente ou use um índice sequencial.
-pred_df$x <- 1:7493
-
-# Criando o gráfico com apenas as primeiras 10 previsões
-ggplot(pred_df[0:50, ], aes(x = x, y = fit)) +
-  geom_point(aes(y = ValidSet$target[0:50]), color = 'blue') + # Pontos dos dados reais
-  geom_line(aes(y = fit), color = 'black') + # Linha dos valores ajustados
-  geom_ribbon(aes(ymin = lwr, ymax = upr), alpha = 0.2) + # Área de intervalo de predição
-  labs(x = "Variável Independente", y = "Target", title = "Valores Ajustados com Intervalo de Predição para as Primeiras 10 Observações")
-
+```{r func_avaliacao}
+# Função para detectar se uma coluna tem outliers
+avaliacao_modelo <- function(dataset, predictions) {
+  # Calculando o MSE
+  mse <- mean((dataset$target - predictions)^2)
+  
+  # Calculando o RMSE
+  rmse <- sqrt(mse)
+  
+  # Calculando o MAE
+  mae <- mean(abs(dataset$target - predictions))
+  
+  # Calcular a soma dos quadrados dos resíduos (SS_res)
+  SS_res <- sum((dataset$target - predictions)^2)
+  
+  # Calcular a soma total dos quadrados (SS_tot)
+  SS_tot <- sum((dataset$target - mean(dataset$target))^2)
+  
+  # Calcular o R² nos dados de validação
+  R2_validation <- 1 - (SS_res / SS_tot)
+  
+  # Imprimindo os resultados
+  # Imprimir o R²
+  cat("R²:", R2_validation, "\n")
+  cat("MSE:", mse, "\n")
+  cat("RMSE:", rmse, "\n")
+  # cat("MAE:", mae, "\n")
+  }
 
 ```
 
-```{r}
+
+```{r previsoes_dados_validação}
 # Fazer previsões nos dados de validação
-predictions <- predict(modelo1, newdata = novo_ValidSet)
+predictions <- predict(modelo_inicial, newdata = novo_ValidSet)
+predictions1 <- predict(modelo1, newdata = novo_ValidSet)
+# predictions2 <- predict(modelo2, newdata = novo_ValidSet)
+# predictions3 <- predict(modelo3, newdata = novo_ValidSet)
+
+```
+```{r summary_modelos}
+summary_modelo_inicial <- summary(modelo_inicial)
+summary_modelo1 <- summary(modelo1)
+# summary_modelo2 <- summary(modelo2)
+# summary_modelo3 <- summary(modelo3)
 ```
 
-```{r}
-# Calculando o MSE
-mse <- mean((novo_ValidSet$target - predictions)^2)
 
-# Calculando o RMSE
-rmse <- sqrt(mse)
+```{r resultados_modelos}
+# Fazer previsões nos dados de validação
 
-# Calculando o MAE
-mae <- mean(abs(novo_ValidSet$target - predictions))
-
-# Imprimindo os resultados
+cat("\n","-----------Avaliação Modelo Inicial:-----------","\n",sep = "")
+cat("\n","Treino:","\n",sep = "")
+cat("R² ajustado:", summary_modelo_inicial$adj.r.squared, "\n")
+cat("R²:", summary_modelo_inicial$r.squared, "\n")
 cat("MSE:", mse, "\n")
-cat("RMSE:", rmse, "\n")
-cat("MAE:", mae, "\n")
+cat("RMSE:", sqrt(mse), "\n")
 
-# Calcular a soma dos quadrados dos resíduos (SS_res)
-SS_res <- sum((novo_ValidSet$target - predictions)^2)
+cat("\n","Validação:","\n",sep = "")
+avaliacao_modelo(novo_ValidSet,predictions)
 
-# Calcular a soma total dos quadrados (SS_tot)
-SS_tot <- sum((novo_ValidSet$target - mean(novo_ValidSet$target))^2)
 
-# Calcular o R² nos dados de validação
-R2_validation <- 1 - (SS_res / SS_tot)
+cat("\n","-----------Avaliação Modelo1:-----------","\n",sep = "")
+cat("\n","Treino:","\n",sep = "")
+cat("R² ajustado:", summary_modelo1$adj.r.squared, "\n")
+cat("R²:", summary_modelo1$r.squared, "\n")
+cat("MSE:", mse1, "\n")
+cat("RMSE:", sqrt(mse1), "\n")
 
-# Imprimir o R²
-cat("R² nos dados de validação:", R2_validation, "\n")
+cat("\n","Validação:","\n",sep = "")
+avaliacao_modelo(novo_ValidSet,predictions1)
+
+
+# cat("\n","-----------Avaliação Modelo2:-----------","\n",sep = "")
+# cat("\n","Treino:","\n",sep = "")
+# cat("R² ajustado:", summary_modelo2$adj.r.squared, "\n")
+# cat("R²:", summary_modelo2$r.squared, "\n")
+# cat("MSE:", mse2, "\n")
+# cat("RMSE:", sqrt(mse2), "\n")
+# 
+# cat("\n","Validação:","\n",sep = "")
+# avaliacao_modelo(novo_ValidSet,predictions2)
+# 
+# 
+# cat("\n","-----------Avaliação Modelo3:-----------","\n",sep = "")
+# cat("\n","Treino:","\n",sep = "")
+# cat("R² ajustado:", summary_modelo3$adj.r.squared, "\n")
+# cat("R²:", summary_modelo3$r.squared, "\n")
+# cat("MSE:", mse3, "\n")
+# cat("RMSE:", sqrt(mse3), "\n")
+# 
+# cat("\n","Validação:","\n",sep = "")
+# avaliacao_modelo(novo_ValidSet,predictions3)
+
+```
+
+
+<!-- ```{r amostra_validacao} -->
+
+<!-- # Amostra de validacao -->
+
+<!-- target_pred <- predict(modelo2, interval = "prediction", level = 0.95, -->
+<!--                     newdata = ValidSet, se.fit = T)  -->
+
+<!-- target_pred1 <-target_pred$fit -->
+<!-- ValidSet_pred=cbind(ValidSet,target_pred1) -->
+<!-- ``` -->
+
+<!-- ```{r residuo_validacao} -->
+<!-- # Residuo na amostra de validacao -->
+<!-- residuo_valid <- ValidSet_pred$target - ValidSet_pred$fit -->
+<!-- hist(residuo_valid) -->
+<!-- qqnorm(residuo_valid, ylab="Res?duos",xlab="Quantis te?ricos",main="") -->
+<!-- qqline(residuo_valid) -->
+<!-- ``` -->
+
+<!-- ```{r rmse_validacao} -->
+
+<!-- # Erro quadratico medio na amostra de validacao -->
+<!-- mse2 <- mean((ValidSet_pred$target - ValidSet_pred$fit)^2) -->
+<!-- sqrt(mse2) -->
+<!-- ``` -->
+<!-- ```{r} -->
+<!-- library(ggplot2) -->
+
+<!-- # Convertendo as previsões para um data.frame -->
+<!-- pred_df <- as.data.frame(target_pred$fit) -->
+
+<!-- # Adicionando a variável independente ou índice ao data.frame (se necessário) -->
+<!-- # Substitua variavel_independente pelo nome da sua variável independente ou use um índice sequencial. -->
+<!-- pred_df$x <- 1:7493 -->
+
+<!-- # Criando o gráfico com apenas as primeiras 10 previsões -->
+<!-- ggplot(pred_df[0:50, ], aes(x = x, y = fit)) + -->
+<!--   geom_point(aes(y = ValidSet$target[0:50]), color = 'blue') + # Pontos dos dados reais -->
+<!--   geom_line(aes(y = fit), color = 'black') + # Linha dos valores ajustados -->
+<!--   geom_ribbon(aes(ymin = lwr, ymax = upr), alpha = 0.2) + # Área de intervalo de predição -->
+<!--   labs(x = "Variável Independente", y = "Target", title = "Valores Ajustados com Intervalo de Predição para as Primeiras 10 Observações") -->
+
+<!-- ``` -->
+
+
+
+
+
+
+```{r}
+df_test <- read_csv("./data/test.csv")
+```
+```{r}
+
+# Nomes das colunas que você quer renomear
+colunas_para_renomear <- setdiff(names(df_test), c("id", "target"))
+
+# Número de colunas para renomear
+num_colunas <- length(colunas_para_renomear)
+
+# Inicializando o dicionário
+dicionario <- list()
+
+# Renomear as colunas para x1, x2, x3, ... e criar o dicionario
+for (i in 1:num_colunas) {
+    colname <- colunas_para_renomear[i]
+    new_colname <- paste("x", i, sep="")
+    
+    # Adicionando ao dicionário
+    dicionario[[new_colname]] <- colname
+    
+    print(paste(colname, "->", new_colname))
+    
+    # Renomeando a coluna
+    names(df_test)[names(df_test) == colname] <- new_colname
+}
+
+df_test$x2 <- factor(df_test$x2)
+df_test$x5 <- factor(df_test$x5)
+df_test$x27 <- factor(df_test$x27)
+df_test$x28 <- factor(df_test$x28)
+df_test$x53 <- factor(df_test$x53, ordered=TRUE)
+df_test$x59 <- factor(df_test$x59)
+df_test$x62 <- factor(df_test$x62)
+df_test$x67 <- factor(df_test$x67)
+df_test$x78 <- factor(df_test$x78)
+df_test$x91 <- factor(df_test$x91)
+df_test$x100 <- factor(df_test$x100)
+
+
+dadosQuali_test <- df_test %>%
+  select(x2,x5,x27,x28,x53,x59,x62,x67,x78,x91,x100)
+
+dadosQuant_test <- df_test %>%
+  select(-c(id,x2,x5,x27,x28,x53,x59,x62,x67,x78,x91,x100))
+
+
+
+# Processando cada coluna do dataset
+for (col_name in col_quant_qual) {
+  
+  dadosQuali_test[[col_name]] <- as.factor(transform_to_categories(dadosQuant_test[[col_name]]))
+  dadosQuant_test[[col_name]] <- NULL
+  cat(sprintf("Transformed column '%s' into categories\n", col_name))
+
+}
+
+# Calculando os valores mínimos e máximos para cada coluna do dataframe quantitativo
+training_mins <- apply(dadosQuant, 2, min, na.rm = TRUE)
+training_maxs <- apply(dadosQuant, 2, max, na.rm = TRUE)
+
+# Normalizando o conjunto de teste
+df_test_norm <- dadosQuant_test # Presumindo que dadosQuant_test contém as variáveis quantitativas do conjunto de teste
+for (col_name in names(training_mins)) {
+  df_test_norm[[col_name]] <- (dadosQuant_test[[col_name]] - training_mins[col_name]) / (training_maxs[col_name] - training_mins[col_name])
+}
+
+# criar variaveis dummies das variaveis preditoras qualitativas
+var_dummies_test <- dummy_cols(dadosQuali_test, select_columns = names(dadosQuali_test),
+           remove_first_dummy = TRUE,
+           remove_selected_columns = TRUE)
+
+df_test_modelo <- cbind(df_test_norm,var_dummies_test)
+
+```
+
+
+```{r}
+
+# Passo 1: Converta variáveis categóricas em variáveis dummy nos dados de teste
+# (supondo que você já fez isso para os dados de treinamento)
+# df_test_modelo <- ... (seu código aqui)
+
+# Passo 2: Identificar colunas que estão faltando nos dados de teste
+training_column_names <- colnames(df_modelo)
+missing_columns <- setdiff(training_column_names, colnames(df_test_modelo))
+
+# Passo 3: Adicionar colunas faltantes aos dados de teste
+missing_data <- matrix(0, nrow = nrow(df_test_modelo), ncol = length(missing_columns))
+colnames(missing_data) <- missing_columns
+df_test_modelo <- cbind(df_test_modelo, missing_data)
+
+# Passo 4: Identificar e remover colunas extras que estão presentes nos dados de teste mas não nos dados de treinamento
+extra_columns <- setdiff(colnames(df_test_modelo), training_column_names)
+df_test_modelo <- df_test_modelo[, !colnames(df_test_modelo) %in% extra_columns]
+
+# Agora, os dados de teste devem ter exatamente a mesma estrutura que os dados de treinamento,
+# e você pode usar seu modelo treinado para fazer previsões no conjunto de dados de teste.
+
+
 ```
 
 ```{r}
-# Calcule os erros
-errors <- predictions - novo_ValidSet$target_variable
-
-# Calcule a soma dos quadrados dos erros
-SSE <- sum(errors^2)
-
-# Calcule a média do target variable nos dados de validação
-mean_target <- mean(novo_ValidSet$target_variable)
-
-# Calcule a soma total dos quadrados
-SST <- sum((novo_ValidSet$target_variable - mean_target)^2)
-
-# Calcule o R-squared
-R_squared <- 1 - (SSE/SST)
-R_squared
+# Isso reordena as colunas na matriz df_test_modelo para corresponder à ordem em training_column_names
+df_test_modelo <- df_test_modelo[, training_column_names]
 ```
 
+```{r}
+
+predictions_test <- predict(modelo1, newdata = df_test_modelo)
+df_test$target <- predictions_test
+
+```
 
 
